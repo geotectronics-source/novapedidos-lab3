@@ -52,6 +52,14 @@ uv run ruff check . ; uv run ruff format .
 - Interfaz del motor: `construir_pedido(catalogo, cliente_id, recibido, es_pedido=, pide_lo_de_siempre=,
   operaciones=[Operacion], pendientes_resolucion=[Pendiente])`. Ver DECISIONES.md D5–D6.
 
+## Resolución de productos (src/novapedidos/resolucion/)
+
+- `Resolutor(catalogo).resolver(texto) -> Resolucion(tipo=UNICO|AMBIGUO|NO_EXISTE, skus)`.
+- Precisión antes que cobertura: palabra no reconocida → NO_EXISTE; fuzzy solo por distancia de edición
+  (≤1, ≤2 en 10+ letras, mínimo 5 letras), nunca `fuzz.ratio`.
+- Vocabulario curado en `normalizacion.py` (STOPWORDS, SINONIMOS_PALABRA, SINONIMOS_FRASE). Al agregar un
+  sinónimo, agregar su caso a `tests/resolucion/test_resolutor.py`.
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.

@@ -34,7 +34,7 @@ extend-exclude = ["lab3"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
-
+ignore = ["SIM905"]  # listas de palabras como "a b c".split() son más legibles
 [tool.ruff.lint.per-file-ignores]
 # Scripts exploratorios: se priorizan la legibilidad de las salidas y la brevedad.
 "eda/*" = ["E501", "E702", "E741"]

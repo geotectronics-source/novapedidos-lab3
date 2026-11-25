@@ -63,5 +63,29 @@ consideraron y por qué. Se completa a medida que avanza el laboratorio.
 - **Resultado:** 5 hallazgos propuestos, 2 defectos reales confirmados y corregidos con pruebas de regresión,
   y 1 descartado por ser una ambigüedad de la política.
 
-<!-- Pendientes: modelo elegido (Inciso 8), estrategia de resolución de productos (Inciso 4),
-     tolerancia a fallas de MLflow (Inciso 7), técnica de calificación (Inciso 8). -->
+## D8. Resolución de productos determinista, por filtrado de restricciones
+
+- **Decisión:** `resolucion/resolutor.py` convierte cada mención en UNICO / AMBIGUO / NO_EXISTE. Cada
+  palabra y medida del cliente descarta productos del catálogo; lo que sobrevive decide. Las palabras se
+  reconocen por: exacta/alias/sinónimo curado → palabras pegadas o separadas → diminutivo → clave fonética
+  (v=b, z=s, ll=y, c/qu=k, h muda) → distancia Damerau-Levenshtein ≤ 1 (≤ 2 en palabras de 10+ letras).
+  Las medidas se comparan convertidas (0.5 l = 500 ml). Cualquier palabra no reconocida → NO_EXISTE.
+- **Alternativas:** (a) `fuzz.ratio ≥ 80` (primera versión); (b) que el LLM elija el SKU directamente;
+  (c) embeddings semánticos.
+- **Justificación:**
+  - *Precisión antes que cobertura.* Un SKU equivocado se entrega sin revisión; un NO_EXISTE equivocado solo
+    manda el pedido a un humano. La política dice "ante la duda, no adivinar".
+  - `fuzz.ratio` resultó peligroso: "azuquita"→leche *Vaquita*, "cereal"→aceite Palma *Real*, "monster"→frijol
+    *Monte* Verde. La distancia de edición en número de errores (no en porcentaje) lo evita.
+  - Es gratis, instantáneo (~0.14 ms por mención) y 100 % reproducible y probable.
+- **Evidencia:** 274 pruebas; 2 rondas de revisión adversarial con agentes (537 menciones nuevas generadas) cuyas
+  70 fallas reales se convirtieron en pruebas de regresión (`tests/resolucion/test_resolutor.py::ATAQUE`).
+- **Límite conocido → Inciso 5:** el lenguaje informal tiene una cola larga que ninguna lista curada cubre.
+  Por eso el LLM normalizará cada mención al vocabulario del catálogo antes de resolverla, y el resolutor
+  actuará como validador que nunca deja pasar un SKU inventado. En el Inciso 8 se compara contra la
+  alternativa (b).
+- **Casos discutibles (se mantiene la lectura conservadora):** "kola familiar", "shampoo de botella",
+  "aceite dorado 1 litro" (presentación que no existe → NO_EXISTE).
+
+<!-- Pendientes: modelo elegido (Inciso 8), tolerancia a fallas de MLflow (Inciso 7),
+     técnica de calificación (Inciso 8). -->
