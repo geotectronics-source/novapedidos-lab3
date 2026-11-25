@@ -38,6 +38,9 @@ ignore = ["SIM905"]  # listas de palabras como "a b c".split() son más legibles
 [tool.ruff.lint.per-file-ignores]
 # Scripts exploratorios: se priorizan la legibilidad de las salidas y la brevedad.
 "eda/*" = ["E501", "E702", "E741"]
+# El texto del prompt y sus descripciones son instrucciones para el modelo: no se cortan.
+"src/novapedidos/llm/*" = ["E501"]
+"tests/llm/*" = ["E501"]
 
 [dependency-groups]
 dev = [

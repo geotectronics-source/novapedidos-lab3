@@ -60,6 +60,15 @@ uv run ruff check . ; uv run ruff format .
 - Vocabulario curado en `normalizacion.py` (STOPWORDS, SINONIMOS_PALABRA, SINONIMOS_FRASE). Al agregar un
   sinónimo, agregar su caso a `tests/resolucion/test_resolutor.py`.
 
+## Capa LLM y pipeline
+
+- `llm/esquemas.py` (Extraccion) es lo único que se consume del modelo; nunca agregar campos de precio/total.
+- `llm/prompts.py`: subir `VERSION_PROMPT` al cambiar el prompt (se registra en MLflow).
+- `servicio.InterpreteDePedidos.interpretar(cliente_id, recibido, mensajes)`: cliente → LLM → resolución
+  (`resolucion/combinar.py`, estrategia `hibrida`) → motor → plantilla de mensaje.
+- La unidad se deriva del texto literal (`unidad_desde_texto`), no del LLM.
+- En pruebas usar `ExtractorFijo`; las que llaman al modelo real llevan `@pytest.mark.llm`.
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.

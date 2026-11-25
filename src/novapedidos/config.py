@@ -17,10 +17,17 @@ class Settings(BaseSettings):
     # --- Modelo de lenguaje (OpenRouter) ---
     openrouter_api_key: SecretStr | None = Field(default=None, description="Clave de OpenRouter")
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    modelo_llm: str = Field(default="openai/gpt-4.1-mini", description="Modelo principal (id de OpenRouter)")
+    modelo_llm: str = Field(
+        default="anthropic/claude-haiku-5.5", description="Modelo principal (id de OpenRouter)"
+    )
+    modelo_llm_respaldo: str | None = Field(
+        default=None, description="Modelo alterno si el principal falla (429, caída). Vacío = sin respaldo"
+    )
     llm_temperatura: float = 0.0
     llm_timeout_s: float = 30.0
     llm_max_reintentos: int = 2
+    llm_metodo_salida: str = Field(default="function_calling", description="function_calling | json_schema")
+    estrategia_resolucion: str = Field(default="hibrida", description="hibrida | determinista | llm")
 
     # --- Datos publicados por el equipo docente ---
     data_dir: Path = Field(default=Path("lab3"), description="Carpeta con datos/, politicas.md, ejemplos/")
