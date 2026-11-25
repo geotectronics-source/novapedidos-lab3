@@ -48,6 +48,9 @@ uv run ruff check . ; uv run ruff format .
 - "Lo de siempre" = último pedido `entregado` (los cancelados no cuentan); se le aplican agotados/sustitutos.
 - Sustituto que ya existe en el pedido se suma a esa línea. Quitar un producto ocurre antes de evaluar agotados.
 - Pendiente de agotado sin sustituto: `texto` = nombre del catálogo, `opciones` = [sku].
+- Unidades sueltas/docenas se acumulan por SKU y se convierten una sola vez (12 + 12 botellas = 1 fardo).
+- Interfaz del motor: `construir_pedido(catalogo, cliente_id, recibido, es_pedido=, pide_lo_de_siempre=,
+  operaciones=[Operacion], pendientes_resolucion=[Pendiente])`. Ver DECISIONES.md D5–D6.
 
 ## Convenciones
 
