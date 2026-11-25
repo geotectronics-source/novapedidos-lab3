@@ -6,46 +6,75 @@ API que recibe los mensajes informales que los tenderos envían por WhatsApp y p
 estructurado y verificable: líneas, precios, descuentos, total, fecha de entrega, sustituciones,
 pendientes para revisión humana y un mensaje de confirmación para el cliente.
 
-> 🚧 En construcción. Las instrucciones de `docker compose up` y de evaluación se completan en los
-> incisos 9 y 10.
+**Arquitectura:** el LLM (LangChain + OpenRouter, salida estructurada) solo *extrae* qué pidió el cliente;
+el código determinista y probado resuelve los productos y calcula precios, descuentos, crédito, fechas y
+estado. Ningún mensaje puede alterar precios ni condiciones. Detalle en [DECISIONES.md](DECISIONES.md).
 
-## Requisitos
+## Levantar el producto (un comando)
 
-- Docker Desktop (con Docker Compose).
-- Una clave de [OpenRouter](https://openrouter.ai).
-- Para desarrollo local: [uv](https://docs.astral.sh/uv/) (instala Python 3.12 automáticamente).
+Requisitos: Docker Desktop (con Docker Compose) y una clave de [OpenRouter](https://openrouter.ai).
 
-## Datos
-
-Los datos publicados en el GES **no** están en el repositorio. Descomprímalos en la carpeta `lab3/`
-en la raíz del proyecto, de modo que queden así:
+**1. Datos.** Los datos publicados en el GES **no** están en el repositorio. Descomprímalos en la carpeta
+`lab3/`, en la raíz del proyecto:
 
 ```
 lab3/
-├── datos/  productos.parquet · sinonimos.parquet · precios_escala.parquet · clientes.parquet · historial_pedidos.parquet
-├── ejemplos/mensajes_dev.jsonl
+├── datos/        productos.parquet · sinonimos.parquet · precios_escala.parquet · clientes.parquet · historial_pedidos.parquet
+├── ejemplos/     mensajes_dev.jsonl
 ├── politicas.md
 └── catalogo_problemas.md
 ```
 
-(Otra ubicación: ajuste `DATA_DIR` en `.env`.)
+(Si están en otra carpeta: `DATA_HOST_DIR=C:/ruta/a/la/carpeta` en `.env`.)
 
-## Configuración
-
-```powershell
-Copy-Item .env.example .env   # y complete OPENROUTER_API_KEY
-```
-
-## Desarrollo local
+**2. Configuración.** Copie el ejemplo y escriba su clave en `OPENROUTER_API_KEY`:
 
 ```powershell
-uv sync
-uv run pytest                 # pruebas sin modelo
-uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
-uv run uvicorn novapedidos.api.app:app --port 8000
+Copy-Item .env.example .env
 ```
 
-Documentación interactiva de la API: http://127.0.0.1:8000/docs
+(En Linux/macOS: `cp .env.example .env`.) El modelo ya viene configurado en `.env.example`
+(`MODELO_LLM=anthropic/claude-haiku-5.5`, respaldo `openai/gpt-6-luna`).
+
+**3. Levantar:**
+
+```powershell
+docker compose up --build
+```
+
+| Servicio | URL |
+|---|---|
+| API | http://localhost:8000 · documentación interactiva: http://localhost:8000/docs |
+| MLflow (trazas y evaluaciones) | http://localhost:5000 |
+
+La primera vez tarda ~1 minuto en construir la imagen; la API queda lista unos 10 s después de arrancar.
+
+**4. Verificar** (PowerShell):
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/v1/pedidos/interpretar -ContentType "application/json" -Body '{"cliente_id": "C001", "fecha_hora": "2026-11-23T15:20", "mensajes": ["Buenas, mandeme 2 fardos de kola 600, una caja de aceite", "y 48 latas de energia max"]}'
+```
+
+En Linux/macOS (bash):
+
+```bash
+curl -s -X POST http://localhost:8000/v1/pedidos/interpretar -H 'Content-Type: application/json' \
+  -d '{"cliente_id": "C001", "fecha_hora": "2026-11-23T15:20", "mensajes": ["Buenas, mandeme 2 fardos de kola 600, una caja de aceite", "y 48 latas de energia max"]}'
+```
+
+Notas para Windows: en PowerShell 5.1 no use `curl.exe -d '...'` (parte el JSON en los espacios), y en Git Bash
+`curl` envía los acentos en cp1252, no en UTF-8 (la API responde 422 explicando que el cuerpo debe ser UTF-8).
+
+**Tolerancia a fallas de MLflow:** con `docker compose stop mlflow`, la API sigue respondiendo y
+`GET /health` devuelve `"estado": "degradado"` con el motivo; con `docker compose start mlflow` todo se
+recupera solo, sin reiniciar la API.
+
+**Puertos ocupados:** la API usa el 8000 (lo exige el contrato). Si el 5000 está ocupado por otro
+servicio, cambie el puerto de MLflow en `.env`: `MLFLOW_PUERTO_HOST=5001`.
 
 ## API
 
@@ -64,30 +93,62 @@ Documentación interactiva de la API: http://127.0.0.1:8000/docs
 | 200 | Pedido interpretado (contrato del Anexo) |
 | 404 | El cliente no existe |
 | 422 | Solicitud inválida (campos faltantes, lista vacía, fecha que no es `AAAA-MM-DDTHH:MM`…); `detail` explica el motivo |
-| 503 | El modelo de lenguaje no está disponible (reintentar) |
+| 503 | El modelo de lenguaje no está disponible tras reintentos y modelo de respaldo (reintentar) |
 
-`GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {...}}`
+`GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {"datos", "mlflow", "llm"}}`
 
-## Evaluación reproducible (MLflow)
+## Evaluación reproducible
 
-Requiere un servidor de MLflow (el de `docker compose` o uno local) y `OPENROUTER_API_KEY` en `.env`.
+Con el producto levantado (`docker compose up`) y `uv` instalado:
 
 ```powershell
-# Una configuración (modelo + estrategia) sobre los 84 casos publicados + 48 propios
+uv sync
+
+# Prueba de punta a punta POR HTTP contra el contenedor: 132 casos, solicitudes inválidas y caída de MLflow
+uv run python evaluacion/probar_http.py --interrumpir-mlflow
+
+# Evaluación en MLflow de una configuración (84 casos publicados + 48 propios)
 uv run python -m novapedidos.evaluacion.ejecutar --modelo anthropic/claude-haiku-5.5 --conjunto todos
 
-# La comparación completa de alternativas (7 configuraciones, ~US$1.8, ~25 min)
+# Comparación completa de alternativas (7 configuraciones, ~US$1.8, ~25 min)
 uv run python -m novapedidos.evaluacion.comparar
-
-# Reconstruir las respuestas esperadas de los casos propios a partir de su interpretación
-uv run python evaluacion/construir_casos_propios.py
 ```
 
-Resultados en MLflow (experimento `novapedidos-evaluacion`) y en `evidencia/comparacion/`
-([análisis y elección del modelo](evidencia/comparacion/ANALISIS.md)).
+Para que los scripts de evaluación escriban en el MLflow del compose, use en `.env`
+`MLFLOW_TRACKING_URI=http://127.0.0.1:5000` (el valor de `.env.example`).
+
+Resultados: MLflow (experimento `novapedidos-evaluacion`), [evidencia/comparacion/ANALISIS.md](evidencia/comparacion/ANALISIS.md)
+(análisis y elección del modelo) y [evidencia/docker/prueba_http.json](evidencia/docker/prueba_http.json).
+Casos propios: [evaluacion/casos_propios.jsonl](evaluacion/casos_propios.jsonl) (mismo formato que `mensajes_dev.jsonl`).
+
+## Desarrollo local (sin Docker)
+
+```powershell
+uv sync
+uv run pytest                 # pruebas sin modelo (~380, ~15 s)
+uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
+uv run uvicorn novapedidos.api.app:app --port 8000
+```
+
+## Estructura
+
+```
+src/novapedidos/
+  dominio/          reglas del negocio (precios, descuentos, crédito, fechas, estado) — sin LLM
+  resolucion/       texto del cliente → SKU (sinónimos, fonética, ambigüedad, "no existe")
+  llm/              extracción con LangChain + OpenRouter (salida estructurada) y prompt
+  servicio.py       pipeline: cliente → LLM → resolución → motor → mensaje
+  api/              FastAPI (contrato del Anexo, validación 422, /health)
+  observabilidad/   trazas en MLflow tolerantes a fallas; verificación de salud
+  evaluacion/       scorers por código, evaluación y comparación en MLflow
+tests/              pruebas automatizadas que no dependen del modelo
+evaluacion/         casos propios y prueba por HTTP
+evidencia/          comparación de alternativas, capturas de MLflow, prueba en Docker
+eda/                exploración de datos y verificación de las reglas
+```
 
 ## Documentación
 
-- [DECISIONES.md](DECISIONES.md): decisiones de diseño, alternativas y justificación.
+- [DECISIONES.md](DECISIONES.md): decisiones de diseño, alternativas y justificación (incluida la elección del modelo).
 - [CLAUDE.md](CLAUDE.md): contexto para agentes de programación.
 - [eda/REPORTE_EDA.md](eda/REPORTE_EDA.md): exploración de datos y verificación de las reglas.

@@ -95,6 +95,18 @@ uv run ruff check . ; uv run ruff format .
   (`uv run python -m novapedidos.evaluacion.comparar`): los resultados deben corresponder al código final.
 - Modelos con 20 solicitudes/min (gpt-6-luna, claude-sonnet-5.5) se evalúan con `rps=0.3`.
 
+## Docker
+
+```powershell
+docker compose up --build            # API :8000 + MLflow :5000
+docker compose stop mlflow           # prueba de tolerancia: /health -> degradado, la API sigue respondiendo
+uv run python evaluacion/probar_http.py --interrumpir-mlflow   # prueba de punta a punta por HTTP
+```
+
+- Dentro de compose la API usa `MLFLOW_TRACKING_URI=http://mlflow:5000` (lo fija el compose, manda sobre `.env`).
+- Nada de datos ni credenciales en la imagen: revisar `.dockerignore` al agregar archivos.
+- Probar comandos de documentación en PowerShell 5.1 (comillas, charset) antes de publicarlos.
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.

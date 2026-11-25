@@ -1,0 +1,27 @@
+# Solo entra a la imagen lo que el Dockerfile copia (pyproject, uv.lock y src/).
+# Credenciales y datos NUNCA:
+.env
+.env.*
+!.env.example
+lab3/
+*.parquet
+Laboratorio_3_PD_26.pdf
+
+# Entornos y artefactos locales
+.venv/
+mlflow_data/
+mlruns/
+mlartifacts/
+**/__pycache__/
+*.py[oc]
+.pytest_cache/
+.ruff_cache/
+
+# No necesarios para ejecutar la API
+.git/
+.claude/
+tests/
+eda/
+evaluacion/
+evidencia/
+*.md

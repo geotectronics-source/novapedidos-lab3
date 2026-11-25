@@ -228,3 +228,30 @@ consideraron y por qué. Se completa a medida que avanza el laboratorio.
   LLM" (97.7 %: elige por el cliente en las ambigüedades).
 - **Límite estadístico:** 0 fallas en 132 casos acota la tasa de error en ~2.3 % (IC 95 %); la calidad no separa a
   haiku, luna y sonnet, por eso decidieron costo, latencia y operación.
+
+## D19. Contenedores: `docker compose up` con API + MLflow
+
+- **API (`Dockerfile`):** dos etapas con `uv` y `uv.lock --frozen` (las mismas versiones probadas), imagen base
+  fija `python:3.12.13-slim-bookworm`, usuario sin privilegios, `HEALTHCHECK` sobre `/health`. La capa de
+  dependencias se reutiliza mientras no cambie `uv.lock` (build sin caché: ~50 s).
+- **MLflow:** imagen oficial `ghcr.io/mlflow/mlflow:v3.18.0` (misma versión que el cliente), SQLite + artefactos en
+  un volumen con nombre (persisten entre reinicios), `--allowed-hosts "*"` para aceptar el nombre `mlflow` de la
+  red de compose.
+- **Datos y credenciales fuera de la imagen:** `.dockerignore` excluye `.env` y `lab3/`; los datos se montan como
+  volumen de **solo lectura** y la clave llega por `env_file`. Verificado dentro de la imagen: sin `.env`, sin
+  parquet, sin la clave en variables.
+- **`depends_on: service_started` (no `service_healthy`):** la API debe arrancar aunque MLflow no esté.
+- **Configurables sin tocar el compose:** `MLFLOW_PUERTO_HOST` (puerto 5000 ocupado) y `DATA_HOST_DIR`.
+- **Hallazgos al probar en Docker (no aparecían en local):**
+  - Con el contenedor de MLflow detenido, resolver el nombre `mlflow` tardaba ~7 s y el timeout de httpx no lo
+    cubre: `/health` tardaba 7.1 s (y el healthcheck de 5 s habría marcado la API como no sana). Ahora la
+    verificación tiene un **plazo total** de 2.5 s (hilo + caché de 5 s).
+  - El `curl.exe -d '...'` de PowerShell 5.1 parte el JSON en los espacios → el README usa `Invoke-RestMethod`.
+  - Sin `charset` en `Content-Type`, PowerShell 5.1 mostraba "Â¡Buenas tardes!" → todas las respuestas declaran
+    `application/json; charset=utf-8`.
+- **Simulación del docente:** carpeta con solo los archivos versionados (`git ls-files`), datos en `lab3/`, `.env`
+  desde `.env.example`, `docker compose build --no-cache` (46 s) y `up` (API sana en 11 s). Prueba por HTTP
+  (`evaluacion/probar_http.py --interrumpir-mlflow`): 132/132 pedidos exactos, 8/8 solicitudes inválidas con el
+  código correcto, MLflow detenido a mitad de la corrida sin ninguna falla, `/health` degradado y de vuelta a ok.
+- **Tamaño:** la imagen pesa ~1.5 GB, sobre todo por MLflow completo. Alternativa evaluada: `mlflow-skinny` en la
+  API; se descartó por el riesgo de diferencias con el cliente usado en evaluación. Es una mejora futura.

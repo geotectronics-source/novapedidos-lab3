@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse as _JSONResponseBase
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from novapedidos import __version__
@@ -46,6 +46,13 @@ if not _raiz.handlers:  # uvicorn solo configura sus propios loggers
     _raiz.addHandler(_manejador)
     _raiz.setLevel(logging.INFO)
 VENTANA_ERROR_LLM_S = 60  # /health reporta degradado si el modelo falló en el último minuto
+
+
+class JSONResponse(_JSONResponseBase):
+    """JSON con charset explícito: sin él, PowerShell 5.1 (Invoke-RestMethod) decodifica la respuesta como
+    ISO-8859-1 y "¡Buenas tardes!" llega como "Â¡Buenas tardes!" (detectado probando el README)."""
+
+    media_type = "application/json; charset=utf-8"
 
 
 def _crear_interprete(settings: Settings) -> InterpreteDePedidos:
@@ -93,6 +100,7 @@ def crear_app(
         version=__version__,
         description="Convierte mensajes de WhatsApp en pedidos estructurados para NovaDistribuidora.",
         lifespan=ciclo_de_vida,
+        default_response_class=JSONResponse,
     )
 
     # ------------------------------------------------------------------ errores

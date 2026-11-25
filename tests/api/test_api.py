@@ -85,6 +85,17 @@ def test_ejemplo_del_anexo(api):
     assert isinstance(cuerpo["mensaje_cliente"], str) and cuerpo["mensaje_cliente"]
 
 
+def test_respuestas_declaran_utf8(api):
+    # Sin charset, PowerShell 5.1 muestra "Â¡Buenas tardes!" (detectado al probar el README).
+    for r in (
+        api.post("/v1/pedidos/interpretar", json=ANEXO),
+        api.post("/v1/pedidos/interpretar", json={**ANEXO, "mensajes": []}),
+        api.post("/v1/pedidos/interpretar", json={**ANEXO, "cliente_id": "C999"}),
+        api.get("/health"),
+    ):
+        assert r.headers["content-type"] == "application/json; charset=utf-8", r.status_code
+
+
 def test_fuera_de_alcance_cumple_el_contrato(api):
     r = api.post("/v1/pedidos/interpretar", json={**ANEXO, "mensajes": ["¿A qué hora pasa el camión?"]})
     cuerpo = r.json()
@@ -221,6 +232,25 @@ def test_health_nunca_falla_por_la_uri_de_mlflow(catalogo_real, uri):
     with TestClient(app) as c:
         r = c.get("/health")
         assert r.status_code == 200 and r.json()["estado"] == "degradado"
+
+
+def test_health_tiene_plazo_total_aunque_la_consulta_se_cuelgue(monkeypatch):
+    # En docker, resolver el nombre de un MLflow detenido tardó ~7 s: el timeout de httpx no lo cubre.
+    import time
+
+    from novapedidos.observabilidad import salud
+
+    def colgado(*args, **kwargs):
+        time.sleep(10)
+
+    monkeypatch.setattr(salud.httpx, "get", colgado)
+    verificar = salud.VerificadorMlflow("http://mlflow:5000", timeout_s=1, cache_s=5)
+    inicio = time.perf_counter()
+    estado = verificar()
+    assert not estado.disponible and time.perf_counter() - inicio < 2.0
+    inicio = time.perf_counter()
+    verificar()  # en caché: inmediato
+    assert time.perf_counter() - inicio < 0.1
 
 
 def test_documentacion_openapi_disponible(api):

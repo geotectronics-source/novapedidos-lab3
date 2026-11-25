@@ -1,0 +1,51 @@
+# NovaPedidos: API + MLflow.
+#
+#   Copy-Item .env.example .env     # y escriba OPENROUTER_API_KEY
+#   docker compose up --build
+#
+# API:    http://localhost:8000      (docs: http://localhost:8000/docs)
+# MLflow: http://localhost:5000      (puerto configurable con MLFLOW_PUERTO_HOST en .env)
+
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.18.0
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+      --allowed-hosts "*"
+    ports:
+      - "${MLFLOW_PUERTO_HOST:-5000}:5000"
+    volumes:
+      - mlflow_data:/mlflow   # trazas y evaluaciones persisten entre reinicios
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: novapedidos-api:latest
+    ports:
+      - "8000:8000"           # el contrato exige el puerto 8000
+    env_file:
+      - .env                  # OPENROUTER_API_KEY, MODELO_LLM... (no está en la imagen ni en el repositorio)
+    environment:
+      # Dentro de la red de compose, MLflow se llama "mlflow" (estos valores mandan sobre .env)
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      DATA_DIR: /app/lab3
+    volumes:
+      - "${DATA_HOST_DIR:-./lab3}:/app/lab3:ro"   # datos publicados, solo lectura
+    depends_on:
+      mlflow:
+        condition: service_started   # NO "service_healthy": la API debe arrancar aunque MLflow no esté
+    restart: unless-stopped
+
+volumes:
+  mlflow_data:
