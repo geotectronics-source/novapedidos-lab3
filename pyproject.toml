@@ -1,0 +1,47 @@
+[project]
+name = "novapedidos"
+version = "0.1.0"
+description = "Asistente con LLMs que convierte pedidos informales de WhatsApp en pedidos estructurados (Laboratorio 3)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.165.0",
+    "langchain>=1.5.2",
+    "langchain-openai>=1.8.5",
+    "mlflow>=3.18.0",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pydantic>=2.14.4",
+    "pydantic-settings>=2.16.3",
+    "rapidfuzz>=3.14.6",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -m 'not llm'"
+markers = [
+    "llm: pruebas que llaman al modelo real (requieren OPENROUTER_API_KEY); se excluyen por defecto",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = ["lab3"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts exploratorios: se priorizan la legibilidad de las salidas y la brevedad.
+"eda/*" = ["E501", "E702", "E741"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]

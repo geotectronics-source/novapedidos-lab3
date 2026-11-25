@@ -1,0 +1,34 @@
+# --- Python ---
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.venv
+.pytest_cache/
+.ruff_cache/
+
+# --- Credenciales: NUNCA al repositorio ---
+.env
+.env.*
+!.env.example
+
+# --- Datos publicados por el equipo docente: NO forman parte del repositorio ---
+lab3/
+*.parquet
+
+# --- Artefactos locales de MLflow ---
+mlruns/
+mlartifacts/
+mlflow_data/
+*.db
+
+# --- Material del curso ---
+Laboratorio_3_PD_26.pdf
+
+# --- Sistema / editores ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

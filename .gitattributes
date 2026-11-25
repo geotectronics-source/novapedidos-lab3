@@ -1,0 +1,6 @@
+# Finales de línea LF en todo el repositorio: los contenedores Docker (Linux) los necesitan.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.parquet binary
