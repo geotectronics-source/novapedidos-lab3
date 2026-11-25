@@ -41,10 +41,13 @@ ignore = ["SIM905"]  # listas de palabras como "a b c".split() son más legibles
 # El texto del prompt y sus descripciones son instrucciones para el modelo: no se cortan.
 "src/novapedidos/llm/*" = ["E501"]
 "tests/llm/*" = ["E501"]
+# Listas de criterios y parámetros de evaluación en una línea son más legibles.
+"src/novapedidos/evaluacion/*" = ["E501", "E402"]  # E402: variables MLFLOW_* antes de importar mlflow
 
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "matplotlib>=3.11.2",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
 ]

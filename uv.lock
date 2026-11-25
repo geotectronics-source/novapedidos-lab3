@@ -1132,6 +1132,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
+    { name = "matplotlib" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -1153,6 +1154,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "ruff", specifier = ">=0.17.6" },
 ]

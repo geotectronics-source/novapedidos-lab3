@@ -68,6 +68,24 @@ Documentación interactiva de la API: http://127.0.0.1:8000/docs
 
 `GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {...}}`
 
+## Evaluación reproducible (MLflow)
+
+Requiere un servidor de MLflow (el de `docker compose` o uno local) y `OPENROUTER_API_KEY` en `.env`.
+
+```powershell
+# Una configuración (modelo + estrategia) sobre los 84 casos publicados + 48 propios
+uv run python -m novapedidos.evaluacion.ejecutar --modelo anthropic/claude-haiku-5.5 --conjunto todos
+
+# La comparación completa de alternativas (7 configuraciones, ~US$1.8, ~25 min)
+uv run python -m novapedidos.evaluacion.comparar
+
+# Reconstruir las respuestas esperadas de los casos propios a partir de su interpretación
+uv run python evaluacion/construir_casos_propios.py
+```
+
+Resultados en MLflow (experimento `novapedidos-evaluacion`) y en `evidencia/comparacion/`
+([análisis y elección del modelo](evidencia/comparacion/ANALISIS.md)).
+
 ## Documentación
 
 - [DECISIONES.md](DECISIONES.md): decisiones de diseño, alternativas y justificación.

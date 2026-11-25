@@ -26,7 +26,10 @@ from novapedidos.observabilidad.trazas import etiquetar_traza, span
 from novapedidos.resolucion.combinar import Estrategia, resolver_mencion
 from novapedidos.resolucion.resolutor import Resolucion, Resolutor, TipoResolucion
 
-_SUELTAS = re.compile(r"\b(botell|latit|lata|bolsit|bolsa|unidad|paquet|sobres\b|sobrecit)", re.IGNORECASE)
+# "suelt" = "72 jaboncitos rosa sueltos": el cliente dice explícitamente que son unidades (caso propio PA11).
+_SUELTAS = re.compile(
+    r"\b(botell|latit|lata|bolsit|bolsa|unidad|paquet|suelt|sobres\b|sobrecit)", re.IGNORECASE
+)
 _DOCENAS = re.compile(r"\bdocenas?\b", re.IGNORECASE)
 # "un fardo y medio", "media caja": fracción de la unidad de venta. ("litro y medio" es una presentación.)
 _FRACCION_VENTA = re.compile(
@@ -118,7 +121,11 @@ class InterpreteDePedidos:
             with span(
                 "resolucion", "PARSER", {"menciones": [m.model_dump() for m in ext.extraccion.menciones]}
             ) as s:
-                operaciones, pendientes, resoluciones = self._a_operaciones(ext)
+                base = frozenset()  # SKU de "lo de siempre": contexto para correcciones y exclusiones
+                if ext.extraccion.pide_lo_de_siempre:
+                    ultimo = self.catalogo.ultimo_pedido_entregado(cliente_id, antes_de=recibido.date())
+                    base = frozenset(sku for sku, _ in ultimo.lineas) if ultimo else frozenset()
+                operaciones, pendientes, resoluciones = self._a_operaciones(ext, base)
                 s.salidas({
                     "resoluciones": [
                         {"producto": p, "tipo": r.tipo.value, "skus": list(r.skus), "metodo": r.metodo}
@@ -165,7 +172,7 @@ class InterpreteDePedidos:
         return ResultadoInterpretacion(respuesta=respuesta, extraccion=ext, resoluciones=resoluciones)
 
     def _a_operaciones(
-        self, ext: ResultadoExtraccion
+        self, ext: ResultadoExtraccion, base: frozenset[str] = frozenset()
     ) -> tuple[list[Operacion], list[Pendiente], list[tuple[str, Resolucion]]]:
         operaciones: list[Operacion] = []
         pendientes: list[Pendiente] = []
@@ -185,6 +192,12 @@ class InterpreteDePedidos:
                 else None,
                 skus_previos=frozenset(resueltos),
             )
+            if accion is not Accion.AGREGAR and r.tipo is TipoResolucion.AMBIGUO:
+                # "ah no, de naranjita mejor 4": una corrección o exclusión se refiere a algo YA pedido.
+                # Si de las opciones solo una está en el pedido (o en "lo de siempre"), es esa.
+                en_contexto = set(r.skus) & (resueltos | base)
+                if len(en_contexto) == 1:
+                    r = Resolucion(TipoResolucion.UNICO, tuple(en_contexto), "contexto")
             resoluciones.append((m.producto, r))
             if r.tipo is TipoResolucion.UNICO and accion is Accion.QUITAR:
                 operaciones.append(Operacion(sku=r.sku, texto=m.texto, accion=accion))

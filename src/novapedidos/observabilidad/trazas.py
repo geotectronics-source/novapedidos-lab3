@@ -104,6 +104,28 @@ def _flush_seguro() -> None:
         log.debug("No se pudieron enviar las trazas pendientes", exc_info=True)
 
 
+def cliente_para_scripts(tracking_uri: str) -> None:
+    """Timeouts y reintentos generosos: en scripts importa no perder resultados, no la latencia."""
+    os.environ["MLFLOW_HTTP_REQUEST_TIMEOUT"] = "120"
+    os.environ["MLFLOW_HTTP_REQUEST_MAX_RETRIES"] = "5"
+    mlflow.set_tracking_uri(tracking_uri)
+
+
+def activar_sincrono(tracking_uri: str, experimento: str) -> str:
+    """Para scripts (evaluación): configura MLflow ya mismo y falla si no está disponible.
+
+    A diferencia de la API (timeout 2 s y 0 reintentos, para no frenar a los clientes), en una evaluación lo
+    importante es no perder resultados: registrar en lote las calificaciones de 132 casos tardó más de 2 s.
+    """
+    global _activo, _experimento_id
+    cliente_para_scripts(tracking_uri)
+    exp = mlflow.set_experiment(experimento)
+    mlflow.langchain.autolog(log_traces=True, silent=True)
+    with _lock:
+        _experimento_id, _activo = exp.experiment_id, True
+    return exp.experiment_id
+
+
 def desactivar() -> None:
     """Para pruebas: vuelve al modo sin trazas."""
     global _activo, _experimento_id

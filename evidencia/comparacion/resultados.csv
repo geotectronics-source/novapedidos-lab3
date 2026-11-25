@@ -1,0 +1,8 @@
+nombre,modelo,estrategia,n_casos,errores,pedido_exacto,estado_correcto,lineas_correctas,montos_correctos,fecha_correcta,motivos_correctos,pendientes_correctos,lineas_f1,contrato_valido,mensaje_coherente,latencia_p50_s,latencia_p95_s,costo_por_1000_pedidos_usd,costo_total_usd
+haiku-hibrida,anthropic/claude-haiku-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.505,3.732,0.611,0.08064
+haiku-hibrida-rep2,anthropic/claude-haiku-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.43,3.411,0.611,0.08064
+haiku-determinista,anthropic/claude-haiku-5.5,determinista,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.977,3.38,0.611,0.08065
+haiku-solo-llm,anthropic/claude-haiku-5.5,llm,132,0,0.9773,0.9924,0.9924,0.9924,1.0,0.9924,0.9773,0.9989,1.0,1.0,2.333,3.385,0.611,0.08062
+deepseek-flash-hibrida,deepseek/deepseek-v4.1-flash,hibrida,132,0,0.9924,0.9924,1.0,1.0,1.0,0.9924,0.9924,1.0,1.0,1.0,2.734,5.385,0.313,0.04101
+gpt6-luna-hibrida,openai/gpt-6-luna,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.808,3.691,0.106,0.01402
+sonnet-hibrida,anthropic/claude-sonnet-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.201,3.98,11.972,1.58029

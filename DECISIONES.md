@@ -190,4 +190,41 @@ consideraron y por qué. Se completa a medida que avanza el laboratorio.
 - **Costo aceptado:** las trazas generadas mientras MLflow está caído se pierden; las solicitudes no.
 - **Hallazgo:** el LLM es ~98 % de la latencia de una solicitud (1.82 s de 1.85 s); el código, < 5 ms.
 
-<!-- Pendientes: modelo elegido (Inciso 8), técnica de calificación (Inciso 8). -->
+## D17. Evaluación: casos propios verificados y calificación por código
+
+- **Conjunto:** 84 casos publicados + **48 propios** (`evaluacion/casos_propios.jsonl`, mismo formato) que cubren
+  lo que los publicados no: `cantidad_no_convertible` (0 casos publicados), inyección de instrucciones, crédito en
+  el límite exacto, fechas límite, correcciones sobre "lo de siempre", variantes que no se venden.
+- **Respuestas esperadas confiables:** agentes escribieron mensaje + interpretación; el motor (verificado contra
+  los 84 publicados) calculó lo esperado; verificadores independientes que **no vieron la interpretación**
+  recalcularon cada caso desde los datos: 48/48 correctos.
+- **Calificación por código, no juez LLM:** estado, líneas, montos, fecha, motivos y pendientes tienen una sola
+  respuesta correcta; compararla con código es exacto, gratis y reproducible. 14 scorers `@scorer` en MLflow,
+  más latencia y costo leídos de cada traza.
+- **Lecciones de infraestructura (medidas):** la evaluación usa exportación **síncrona** de trazas y timeouts
+  generosos (la API, asíncrona y con 2 s): con la configuración de la API se perdieron resultados. Los modelos con
+  límite de 20 solicitudes/min se evalúan con 0.3 solicitudes/s. Un error de proveedor se cuenta como error, no
+  como respuesta incorrecta.
+- **Los casos propios encontraron 2 defectos reales** que corrigieron el producto: "72 jaboncitos **sueltos**"
+  (no se reconocía "sueltos") y "de **naranjita** mejor 4" (la corrección ambigua no usaba lo ya pedido).
+
+## D18. Elección del modelo (evidencia: `evidencia/comparacion/ANALISIS.md`)
+
+| Configuración | Exactos (132) | p50 / p95 | US$ / 1 000 pedidos |
+|---|---|---|---|
+| **claude-haiku-5.5 · híbrida** (×2 corridas) | **100 % / 100 %** | 2.5 s / 3.7 s | 0.61 |
+| claude-haiku-5.5 · determinista | 100 % | 2.0 s / 3.4 s | 0.61 |
+| claude-haiku-5.5 · solo LLM | 97.7 % | 2.3 s / 3.4 s | 0.61 |
+| deepseek-v4.1-flash · híbrida | 99.2 % | 2.7 s / 5.4 s | 0.31 |
+| gpt-6-luna · híbrida | 100 % | 1.8 s / 3.7 s | 0.11 |
+| claude-sonnet-5.5 · híbrida | 100 % | 2.2 s / 4.0 s | 12.00 |
+
+- **Principal: `anthropic/claude-haiku-5.5`.** 100 % en dos corridas, sin límite de solicitudes observado con 4 en
+  paralelo, p95 < 4 s, costo bajo.
+- **Respaldo: `openai/gpt-6-luna`** (otro proveedor). Igual de exacto, más rápido y 5.8× más barato, pero con
+  límite de 20 solicitudes/min en cuentas nuevas: como principal, la carga de la evaluación lo haría responder 429.
+  Con una cuenta establecida sería la opción óptima en costo.
+- **Descartados:** Sonnet (misma calidad a 20× el costo), deepseek (p95 de 5.4 s y una falla), estrategia "solo
+  LLM" (97.7 %: elige por el cliente en las ambigüedades).
+- **Límite estadístico:** 0 fallas en 132 casos acota la tasa de error en ~2.3 % (IC 95 %); la calidad no separa a
+  haiku, luna y sonnet, por eso decidieron costo, latencia y operación.

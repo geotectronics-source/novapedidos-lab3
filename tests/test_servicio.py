@@ -154,6 +154,43 @@ def test_correccion_sobre_lo_de_siempre_reemplaza(catalogo_real):
     assert dict((x.sku, x.cantidad) for x in r.lineas)["A02"] == 3
 
 
+def test_correccion_ambigua_se_resuelve_con_lo_ya_pedido(catalogo_real):
+    # Caso propio PB05: "ah no, de naranjita mejor 4" tras pedir "naranjita 600" -> corrige B04 (no ambiguo).
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("3 fardos de naranjita 600", "naranjita 600", ["B04"], 3),
+            m("de naranjita mejor 4", "naranjita", ["B04", "B05"], 4, accion="corregir"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("B04", 4)] and r.pendientes == []
+
+
+def test_correccion_ambigua_sobre_lo_de_siempre(catalogo_real):
+    # C009: lo de siempre trae B04 (naranjita 600). "de la naranjita que sean 3" -> B04 x3.
+    e = Extraccion(
+        es_pedido=True,
+        pide_lo_de_siempre=True,
+        menciones=[m("de la naranjita que sean 3", "naranjita", ["B04", "B05"], 3, accion="corregir")],
+    )
+    r = interprete(catalogo_real, e).interpretar("C009", datetime(2026, 12, 1, 7, 51), ["..."]).respuesta
+    assert dict((x.sku, x.cantidad) for x in r.lineas)["B04"] == 3 and r.pendientes == []
+
+
+def test_agregar_ambiguo_sigue_siendo_ambiguo(catalogo_real):
+    # El contexto solo aplica a correcciones/exclusiones: pedir "naranjitas" de nuevo NO se adivina.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("2 de naranjita 600", "naranjita 600", ["B04"], 2),
+            m("y 3 naranjitas", "naranjitas", [], 3),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert r.pendientes[0].opciones == ["B04", "B05"]
+
+
 def test_un_quintal_de_arroz_no_es_ambiguo(catalogo_real):
     e = Extraccion(es_pedido=True, menciones=[m("un quintal de arroz", "arroz quintal", ["A02"], 1)])
     r = interprete(catalogo_real, e).interpretar("C039", datetime(2026, 12, 10, 10, 40), ["..."]).respuesta
@@ -194,6 +231,8 @@ def test_media_docena(catalogo_real):
         ("5 shampoo birsa sobre 10 ml", Unidad.VENTA),  # "sobre" es parte del nombre
         ("12 sobres de shampoo", Unidad.SUELTA),
         ("5 energía max 473 ml", Unidad.VENTA),
+        ("72 jaboncitos rosa sueltos", Unidad.SUELTA),  # caso propio PA11: antes eran 72 cajas
+        ("30 sueltas de agua pura", Unidad.SUELTA),
         ("3 fardos de kola 600", Unidad.VENTA),
     ],
 )

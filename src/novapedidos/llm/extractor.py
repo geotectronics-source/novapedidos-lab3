@@ -58,10 +58,21 @@ class ExtractorLLM:
         self.version_prompt = VERSION_PROMPT
         self._sistema = mensaje_sistema(catalogo)
         respaldo = settings.modelo_llm_respaldo if modelo is None else None  # en comparaciones, sin respaldo
-        self._cadenas = [(m, self._crear_cadena(settings, m)) for m in (self.modelo, respaldo) if m]
+        # Por cada modelo, dos métodos de salida estructurada: algunos modelos rechazan uno de ellos
+        # (claude-sonnet-5.5 responde 400 a function_calling porque no admite tool_choice forzado).
+        otro = "json_schema" if self.metodo == "function_calling" else "function_calling"
+        self._cadenas = [
+            (m, met, self._crear_cadena(settings, m, met))
+            for m in (self.modelo, respaldo)
+            if m
+            for met in (self.metodo, otro)
+        ]
+        self._incompatibles: set[tuple[str, str]] = (
+            set()
+        )  # (modelo, método) que respondió 400: no se reintenta
         self._intentos_parseo = 2  # si el modelo devuelve JSON inválido, se pide de nuevo una vez
 
-    def _crear_cadena(self, settings: Settings, modelo: str):
+    def _crear_cadena(self, settings: Settings, modelo: str, metodo: str):
         llm = ChatOpenAI(
             model=modelo,
             base_url=settings.openrouter_base_url,
@@ -71,15 +82,19 @@ class ExtractorLLM:
             max_retries=settings.llm_max_reintentos,  # reintentos de red / 429 / 5xx con espera exponencial
             extra_body={"usage": {"include": True}},  # OpenRouter devuelve el costo exacto
         )
-        return llm.with_structured_output(Extraccion, method=self.metodo, include_raw=True)
+        return llm.with_structured_output(Extraccion, method=metodo, include_raw=True)
 
     def extraer(self, mensajes: Sequence[str]) -> ResultadoExtraccion:
         errores = []
-        for modelo, cadena in self._cadenas:
+        for modelo, metodo, cadena in self._cadenas:
+            if (modelo, metodo) in self._incompatibles:
+                continue
             try:
                 return self._extraer_con(modelo, cadena, mensajes)
             except ErrorExtraccion as e:
-                errores.append(str(e))
+                if "Error code: 400" in str(e):  # el modelo no admite este método: no insistir en él
+                    self._incompatibles.add((modelo, metodo))
+                errores.append(f"[{metodo}] {e}")
         raise ErrorExtraccion(" | ".join(errores))
 
     def _extraer_con(self, modelo: str, cadena, mensajes: Sequence[str]) -> ResultadoExtraccion:

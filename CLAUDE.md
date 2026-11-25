@@ -85,6 +85,16 @@ uv run ruff check . ; uv run ruff format .
 - MLflow local para desarrollo: `uv run mlflow server --host 127.0.0.1 --port 5001 --backend-store-uri
   sqlite:///mlflow_data/mlflow.db --default-artifact-root ./mlflow_data/artifacts` (5000 lo usa otro proyecto).
 
+## Evaluación (src/novapedidos/evaluacion/, evaluacion/)
+
+- Casos propios: editar `evaluacion/casos_propios_fuente.json` (mensaje + interpretación) y regenerar con
+  `uv run python evaluacion/construir_casos_propios.py`; nunca editar a mano el `.jsonl` generado.
+- Scorers por código en `comparacion.py` (funciones puras, probadas en `tests/test_evaluacion.py`) envueltos
+  con `@scorer` en `scorers.py`. La métrica principal es `pedido_exacto`.
+- Tras cualquier cambio de código o prompt, la comparación publicada debe re-ejecutarse
+  (`uv run python -m novapedidos.evaluacion.comparar`): los resultados deben corresponder al código final.
+- Modelos con 20 solicitudes/min (gpt-6-luna, claude-sonnet-5.5) se evalúan con `rps=0.3`.
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.
