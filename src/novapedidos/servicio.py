@@ -21,6 +21,8 @@ from novapedidos.dominio.mensaje import redactar_mensaje
 from novapedidos.dominio.modelos import Accion, Motivo, Operacion, Pendiente, RespuestaPedido, Unidad
 from novapedidos.dominio.motor import construir_pedido
 from novapedidos.llm.extractor import Extractor, ResultadoExtraccion
+from novapedidos.llm.prompts import VERSION_PROMPT
+from novapedidos.observabilidad.trazas import etiquetar_traza, span
 from novapedidos.resolucion.combinar import Estrategia, resolver_mencion
 from novapedidos.resolucion.resolutor import Resolucion, Resolutor, TipoResolucion
 
@@ -97,21 +99,69 @@ class InterpreteDePedidos:
     def interpretar(
         self, cliente_id: str, recibido: datetime, mensajes: Sequence[str]
     ) -> ResultadoInterpretacion:
-        self.catalogo.cliente(cliente_id)  # lanza ClienteNoEncontrado antes de gastar tokens
-        ext = self.extractor.extraer(mensajes)
-        operaciones, pendientes, resoluciones = self._a_operaciones(ext)
-        pedido = construir_pedido(
-            self.catalogo,
-            cliente_id,
-            recibido,
-            es_pedido=ext.extraccion.es_pedido,
-            pide_lo_de_siempre=ext.extraccion.pide_lo_de_siempre,
-            operaciones=operaciones,
-            pendientes_resolucion=pendientes,
-        )
-        respuesta = RespuestaPedido(
-            **pedido.model_dump(), mensaje_cliente=redactar_mensaje(pedido, self.catalogo, recibido)
-        )
+        entradas = {
+            "cliente_id": cliente_id,
+            "fecha_hora": recibido.isoformat(timespec="minutes"),
+            "mensajes": list(mensajes),
+        }
+        with span("interpretar_pedido", "CHAIN", entradas) as raiz:
+            self.catalogo.cliente(cliente_id)  # lanza ClienteNoEncontrado antes de gastar tokens
+
+            with span("extraccion", "CHAIN", {"mensajes": list(mensajes)}) as s:
+                ext = self.extractor.extraer(mensajes)  # adentro: span del modelo (mlflow.langchain.autolog)
+                s.salidas(ext.extraccion.model_dump())
+                s.atributos(
+                    modelo=ext.modelo, costo_usd=ext.costo_usd, tokens_entrada=ext.tokens_entrada,
+                    tokens_salida=ext.tokens_salida, intentos=ext.intentos,
+                )  # fmt: skip
+
+            with span(
+                "resolucion", "PARSER", {"menciones": [m.model_dump() for m in ext.extraccion.menciones]}
+            ) as s:
+                operaciones, pendientes, resoluciones = self._a_operaciones(ext)
+                s.salidas({
+                    "resoluciones": [
+                        {"producto": p, "tipo": r.tipo.value, "skus": list(r.skus), "metodo": r.metodo}
+                        for p, r in resoluciones
+                    ],
+                    "operaciones": [o.model_dump(mode="json") for o in operaciones],
+                    "pendientes": [p.model_dump(mode="json") for p in pendientes],
+                })  # fmt: skip
+
+            with span("motor_reglas", "CHAIN", {"operaciones": len(operaciones)}) as s:
+                pedido = construir_pedido(
+                    self.catalogo,
+                    cliente_id,
+                    recibido,
+                    es_pedido=ext.extraccion.es_pedido,
+                    pide_lo_de_siempre=ext.extraccion.pide_lo_de_siempre,
+                    operaciones=operaciones,
+                    pendientes_resolucion=pendientes,
+                )
+                s.salidas(pedido.model_dump(mode="json"))
+
+            respuesta = RespuestaPedido(
+                **pedido.model_dump(), mensaje_cliente=redactar_mensaje(pedido, self.catalogo, recibido)
+            )
+            raiz.salidas(respuesta.model_dump(mode="json"))
+            etiquetar_traza(
+                tags={
+                    "estado": respuesta.estado.value,
+                    "cliente_id": cliente_id,
+                    "modelo": ext.modelo,
+                    "estrategia": self.estrategia.value,
+                    "version_prompt": VERSION_PROMPT,
+                    "motivos": ",".join(m.value for m in respuesta.motivos_revision) or "ninguno",
+                },
+                metadata={
+                    "costo_usd": f"{ext.costo_usd:.6f}",
+                    "tokens_entrada": ext.tokens_entrada,
+                    "tokens_salida": ext.tokens_salida,
+                    "latencia_llm_s": f"{ext.latencia_s:.3f}",
+                    "total_q": respuesta.total,
+                    "lineas": len(respuesta.lineas),
+                },
+            )
         return ResultadoInterpretacion(respuesta=respuesta, extraccion=ext, resoluciones=resoluciones)
 
     def _a_operaciones(

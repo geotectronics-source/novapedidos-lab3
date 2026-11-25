@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "http://localhost:5000"
     mlflow_experimento: str = "novapedidos"
     mlflow_timeout_s: float = 2.0
+    trazas_activas: bool = Field(default=True, description="Enviar trazas de cada solicitud a MLflow")
 
     @property
     def datos_dir(self) -> Path:

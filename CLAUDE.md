@@ -77,6 +77,14 @@ uv run ruff check . ; uv run ruff format .
 - En esta máquina los puertos 8000 y 5000 pueden estar ocupados por otro proyecto (novamercado); para
   pruebas locales usar `--port 8001` y `127.0.0.1` (no `localhost`, que agrega ~2 s en Windows).
 
+## Observabilidad (src/novapedidos/observabilidad/)
+
+- `trazas.py`: usar `with span(nombre, tipo, entradas) as s: ...; s.salidas(...)` y `etiquetar_traza()`; nunca
+  llamar a mlflow directamente desde el dominio o el servicio (si MLflow falla, la solicitud debe seguir).
+- Las variables `MLFLOW_*` (async, reintentos 0, timeout 2 s) se fijan en `trazas.py` antes de importar mlflow.
+- MLflow local para desarrollo: `uv run mlflow server --host 127.0.0.1 --port 5001 --backend-store-uri
+  sqlite:///mlflow_data/mlflow.db --default-artifact-root ./mlflow_data/artifacts` (5000 lo usa otro proyecto).
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.

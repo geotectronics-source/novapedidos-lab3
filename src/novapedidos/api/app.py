@@ -35,9 +35,16 @@ from novapedidos.dominio.catalogo import Catalogo, ClienteNoEncontrado
 from novapedidos.dominio.modelos import RespuestaPedido
 from novapedidos.llm.extractor import ErrorExtraccion, ExtractorLLM
 from novapedidos.observabilidad.salud import EstadoDependencia, VerificadorMlflow
+from novapedidos.observabilidad.trazas import Observabilidad
 from novapedidos.servicio import InterpreteDePedidos
 
 log = logging.getLogger("novapedidos.api")
+_raiz = logging.getLogger("novapedidos")
+if not _raiz.handlers:  # uvicorn solo configura sus propios loggers
+    _manejador = logging.StreamHandler()
+    _manejador.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    _raiz.addHandler(_manejador)
+    _raiz.setLevel(logging.INFO)
 VENTANA_ERROR_LLM_S = 60  # /health reporta degradado si el modelo falló en el último minuto
 
 
@@ -50,8 +57,12 @@ def crear_app(
     settings: Settings | None = None,
     interprete: InterpreteDePedidos | None = None,
     verificador_mlflow: Callable[[], EstadoDependencia] | None = None,
+    trazas: bool | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
+    # Por defecto hay trazas solo en el camino de producción (sin intérprete inyectado): las pruebas
+    # no deben escribir en ningún servidor de MLflow.
+    activar_trazas = settings.trazas_activas and interprete is None if trazas is None else trazas
 
     @asynccontextmanager
     async def ciclo_de_vida(app: FastAPI):
@@ -61,6 +72,11 @@ def crear_app(
         app.state.verificar_mlflow = verificador_mlflow or VerificadorMlflow(
             settings.mlflow_tracking_uri, settings.mlflow_timeout_s
         )
+        observabilidad = None
+        if activar_trazas:  # en un hilo de fondo: MLflow caído no retrasa el arranque
+            observabilidad = Observabilidad(settings.mlflow_tracking_uri, settings.mlflow_experimento)
+            observabilidad.iniciar()
+        app.state.observabilidad = observabilidad
         if app.state.interprete is None:
             try:
                 app.state.interprete = _crear_interprete(settings)
@@ -69,6 +85,8 @@ def crear_app(
                 app.state.error_inicio = str(e)
                 log.error("No se pudo inicializar el intérprete: %s", e)
         yield
+        if observabilidad:
+            observabilidad.detener()
 
     app = FastAPI(
         title="NovaPedidos",

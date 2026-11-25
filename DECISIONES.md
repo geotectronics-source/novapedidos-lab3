@@ -161,5 +161,33 @@ consideraron y por qué. Se completa a medida que avanza el laboratorio.
 - "media docena" = 6 unidades sueltas; el motor verifica si la división es exacta.
 - Una mención "agregar" cuyo texto dice "que sean", "mejor" o "corrijo" se trata como corrección (§2).
 
-<!-- Pendientes: modelo elegido (Inciso 8), tolerancia a fallas de MLflow (Inciso 7),
-     técnica de calificación (Inciso 8). -->
+## D16. Trazas en MLflow tolerantes a fallas (medidas, no supuestas)
+
+- **Qué se traza:** una traza por solicitud (`interpretar_pedido`) con spans `extraccion` (adentro, la llamada
+  al modelo capturada por `mlflow.langchain.autolog`), `resolucion` (cada mención → SKU y método),
+  `motor_reglas` (pedido calculado). Etiquetas filtrables: `estado`, `cliente_id`, `modelo`, `estrategia`,
+  `version_prompt`, `motivos`; metadatos: `costo_usd`, `tokens_entrada/salida`, `latencia_llm_s`, `total_q`.
+- **Mediciones que guiaron el diseño:**
+
+  | Experimento | Resultado |
+  |---|---|
+  | `set_experiment` con MLflow caído y configuración por defecto | **no terminó en 150 s** (7 reintentos con espera exponencial) |
+  | Lo mismo con `MLFLOW_HTTP_REQUEST_MAX_RETRIES=0`, timeout 2 s | falla en 2 s |
+  | Sobrecosto de trazar con exportación asíncrona | ~1 ms por solicitud |
+  | MLflow cae a mitad de la operación | las solicitudes no se bloquean; las trazas de ese periodo se pierden (1 advertencia en el log por traza) |
+  | MLflow vuelve | la exportación se reanuda sola |
+
+- **Decisiones:**
+  1. Exportación asíncrona (`MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=true`), reintentos HTTP en 0, timeout 2 s.
+  2. La configuración (`set_experiment` + `autolog`) se hace en un **hilo de fondo** que reintenta cada 15 s:
+     la API arranca y responde aunque MLflow no exista todavía, y las trazas se activan solas cuando aparece.
+  3. `span()` propio que no hace nada si la observabilidad no está activa y se traga cualquier error de MLflow:
+     la observabilidad nunca tumba una solicitud.
+  4. En las pruebas (intérprete inyectado) no hay trazas: nada se escribe en servidores reales.
+- **Verificado de punta a punta:** API con MLflow arriba (trazas leídas de vuelta del servidor), MLflow detenido
+  con la API en marcha (200 normales, `/health` degradado), MLflow de vuelta (`/health` ok y trazas nuevas
+  guardadas) y API arrancada con MLflow caído (lista en ~9 s; trazas activadas al levantar MLflow).
+- **Costo aceptado:** las trazas generadas mientras MLflow está caído se pierden; las solicitudes no.
+- **Hallazgo:** el LLM es ~98 % de la latencia de una solicitud (1.82 s de 1.85 s); el código, < 5 ms.
+
+<!-- Pendientes: modelo elegido (Inciso 8), técnica de calificación (Inciso 8). -->
