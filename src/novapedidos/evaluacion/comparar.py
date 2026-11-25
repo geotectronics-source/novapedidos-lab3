@@ -32,8 +32,9 @@ CONFIGURACIONES = [
 
 COLUMNAS = [
     "nombre", "modelo", "estrategia", "n_casos", "errores", "pedido_exacto", "estado_correcto", "lineas_correctas",
-    "montos_correctos", "fecha_correcta", "motivos_correctos", "pendientes_correctos", "lineas_f1", "contrato_valido",
-    "mensaje_coherente", "latencia_p50_s", "latencia_p95_s", "costo_por_1000_pedidos_usd", "costo_total_usd",
+    "montos_correctos", "total_correcto", "fecha_correcta", "motivos_correctos", "pendientes_correctos",
+    "sustituciones_correctas", "lineas_f1", "contrato_valido", "mensaje_coherente", "latencia_p50_s", "latencia_p95_s",
+    "costo_por_1000_pedidos_usd", "costo_total_usd",
 ]  # fmt: skip
 
 
@@ -88,17 +89,24 @@ def main() -> None:
         "--solo", default=None, help="corre solo las configuraciones cuyo nombre contenga este texto"
     )
     p.add_argument("--conjunto", default="todos", choices=["dev", "propios", "todos"])
+    p.add_argument(
+        "--solo-reporte", action="store_true", help="no evalúa: regenera tabla y gráfico desde detalle/"
+    )
     a = p.parse_args()
     detalle_dir = SALIDA / "detalle"
     filas = []
     for nombre, modelo, estrategia, workers, rps in CONFIGURACIONES:
-        if a.solo and a.solo not in nombre:
+        if a.solo_reporte or (a.solo and a.solo not in nombre):
             continue
         print(f"\n=== {nombre} ({modelo}, {estrategia}) ===", flush=True)
         resumen = evaluar(
             modelo, estrategia, a.conjunto, workers=workers, rps=rps, nombre=nombre, salida=detalle_dir
         )
         filas.append({"nombre": nombre, **resumen})
+        # Marca el run como parte de la comparación publicada (filtro en MLflow: tags.comparacion_final = 'true')
+        import mlflow
+
+        mlflow.MlflowClient().set_tag(resumen["run_id"], "comparacion_final", "true")
         print(
             json.dumps({k: resumen.get(k) for k in COLUMNAS if k in resumen}, ensure_ascii=False), flush=True
         )
@@ -136,7 +144,7 @@ def main() -> None:
     ]
     md.append(_tabla_md(filas_tipo, ["tipo", *tipos]))
     (SALIDA / "resultados.md").write_text("\n".join(md) + "\n", encoding="utf-8")
-    print(f"\nResultados en {SALIDA}")
+    print(f"\nResultados en {SALIDA.relative_to(RAIZ)}")
 
 
 if __name__ == "__main__":

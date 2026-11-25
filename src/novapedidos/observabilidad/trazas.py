@@ -47,10 +47,6 @@ def activo() -> bool:
     return _activo
 
 
-def experimento_id() -> str | None:
-    return _experimento_id
-
-
 class Observabilidad:
     """Configura MLflow en segundo plano y activa las trazas cuando el servidor responde."""
 

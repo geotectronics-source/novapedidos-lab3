@@ -7,9 +7,9 @@
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mhaiku-hibrida[0m
-  Run ID: [94m3e2bf3536b06481c9e510c15897a296a[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=3e2bf3536b06481c9e510c15897a296a[0m
+  Run name: haiku-hibrida
+  Run ID: 3e2bf3536b06481c9e510c15897a296a
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=3e2bf3536b06481c9e510c15897a296a
 
 {"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.505, "latencia_p95_s": 3.732, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08064}
 
@@ -20,9 +20,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mhaiku-hibrida-rep2[0m
-  Run ID: [94ma5ab2d867ea043498fa8d4c12cfbea98[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=a5ab2d867ea043498fa8d4c12cfbea98[0m
+  Run name: haiku-hibrida-rep2
+  Run ID: a5ab2d867ea043498fa8d4c12cfbea98
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=a5ab2d867ea043498fa8d4c12cfbea98
 
 {"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.43, "latencia_p95_s": 3.411, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08064}
 
@@ -33,9 +33,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mhaiku-determinista[0m
-  Run ID: [94m4fcb17e657344694b76b37fc9bd609c7[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=4fcb17e657344694b76b37fc9bd609c7[0m
+  Run name: haiku-determinista
+  Run ID: 4fcb17e657344694b76b37fc9bd609c7
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=4fcb17e657344694b76b37fc9bd609c7
 
 {"modelo": "anthropic/claude-haiku-5.5", "estrategia": "determinista", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 1.977, "latencia_p95_s": 3.38, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08065}
 
@@ -46,9 +46,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mhaiku-solo-llm[0m
-  Run ID: [94md5169fce1a9949ffb32b028e7eb080d1[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=d5169fce1a9949ffb32b028e7eb080d1[0m
+  Run name: haiku-solo-llm
+  Run ID: d5169fce1a9949ffb32b028e7eb080d1
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=d5169fce1a9949ffb32b028e7eb080d1
 
 {"modelo": "anthropic/claude-haiku-5.5", "estrategia": "llm", "n_casos": 132, "errores": 0, "pedido_exacto": 0.9773, "estado_correcto": 0.9924, "lineas_correctas": 0.9924, "montos_correctos": 0.9924, "fecha_correcta": 1.0, "motivos_correctos": 0.9924, "pendientes_correctos": 0.9773, "lineas_f1": 0.9989, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.333, "latencia_p95_s": 3.385, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08062}
 
@@ -60,9 +60,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mdeepseek-flash-hibrida[0m
-  Run ID: [94m096ca39ac2014f0aa5e70d93d0391abb[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=096ca39ac2014f0aa5e70d93d0391abb[0m
+  Run name: deepseek-flash-hibrida
+  Run ID: 096ca39ac2014f0aa5e70d93d0391abb
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=096ca39ac2014f0aa5e70d93d0391abb
 
 {"modelo": "deepseek/deepseek-v4.1-flash", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 0.9924, "estado_correcto": 0.9924, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 0.9924, "pendientes_correctos": 0.9924, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.734, "latencia_p95_s": 5.385, "costo_por_1000_pedidos_usd": 0.313, "costo_total_usd": 0.04101}
 
@@ -73,9 +73,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94mgpt6-luna-hibrida[0m
-  Run ID: [94m03b2f6949c8540b2b96840a98e9a5b55[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=03b2f6949c8540b2b96840a98e9a5b55[0m
+  Run name: gpt6-luna-hibrida
+  Run ID: 03b2f6949c8540b2b96840a98e9a5b55
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=03b2f6949c8540b2b96840a98e9a5b55
 
 {"modelo": "openai/gpt-6-luna", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 1.808, "latencia_p95_s": 3.691, "costo_por_1000_pedidos_usd": 0.106, "costo_total_usd": 0.01402}
 
@@ -86,9 +86,9 @@ View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evalua
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: [94msonnet-hibrida[0m
-  Run ID: [94m486b52a26cc44c888311590015c9542e[0m
-View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=486b52a26cc44c888311590015c9542e[0m
+  Run name: sonnet-hibrida
+  Run ID: 486b52a26cc44c888311590015c9542e
+View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=486b52a26cc44c888311590015c9542e
 
 {"modelo": "anthropic/claude-sonnet-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.201, "latencia_p95_s": 3.98, "costo_por_1000_pedidos_usd": 11.972, "costo_total_usd": 1.58029}
 

@@ -24,8 +24,10 @@ src/novapedidos/
   llm/             cadenas LangChain, prompts, esquemas de extracción
   api/             FastAPI: POST /v1/pedidos/interpretar, GET /health
   observabilidad/  MLflow (trazas), tolerante a que MLflow no esté disponible
+  evaluacion/      scorers por código, evaluación y comparación en MLflow
+  servicio.py      pipeline: cliente → LLM → resolución → motor → mensaje
 tests/             pytest; NO llaman al modelo (marcador `llm` para las que sí)
-evaluacion/        casos propios (.jsonl) y evaluación/comparación en MLflow
+evaluacion/        casos propios (.jsonl + fuente) y prueba de punta a punta por HTTP
 evidencia/         resultados de la comparación y capturas de MLflow
 eda/               exploración de datos (REPORTE_EDA.md: reglas verificadas)
 lab3/              datos del GES — NO se versiona (montado como volumen en Docker)
@@ -74,16 +76,17 @@ uv run ruff check . ; uv run ruff format .
 - `crear_app(settings, interprete, verificador_mlflow)` permite inyectar dobles; las pruebas de
   `tests/api/` nunca llaman al modelo.
 - Validación en `api/esquemas.py` (422 en español, antes de llamar al modelo); 404 cliente; 503 LLM caído.
-- En esta máquina los puertos 8000 y 5000 pueden estar ocupados por otro proyecto (novamercado); para
-  pruebas locales usar `--port 8001` y `127.0.0.1` (no `localhost`, que agrega ~2 s en Windows).
+- Si los puertos 8000/5000 están ocupados, usar `uvicorn ... --port 8001` y `MLFLOW_PUERTO_HOST` en `.env`.
+  En pruebas locales preferir `127.0.0.1` a `localhost` (en Windows, `localhost` agrega ~2 s por IPv6).
 
 ## Observabilidad (src/novapedidos/observabilidad/)
 
 - `trazas.py`: usar `with span(nombre, tipo, entradas) as s: ...; s.salidas(...)` y `etiquetar_traza()`; nunca
   llamar a mlflow directamente desde el dominio o el servicio (si MLflow falla, la solicitud debe seguir).
 - Las variables `MLFLOW_*` (async, reintentos 0, timeout 2 s) se fijan en `trazas.py` antes de importar mlflow.
-- MLflow local para desarrollo: `uv run mlflow server --host 127.0.0.1 --port 5001 --backend-store-uri
-  sqlite:///mlflow_data/mlflow.db --default-artifact-root ./mlflow_data/artifacts` (5000 lo usa otro proyecto).
+- MLflow para desarrollo: `docker compose up -d mlflow` (puerto 5000), o sin Docker:
+  `uv run mlflow server --host 127.0.0.1 --port 5000 --backend-store-uri sqlite:///mlflow_data/mlflow.db
+  --default-artifact-root ./mlflow_data/artifacts`. `MLFLOW_TRACKING_URI` en `.env` debe apuntar al mismo puerto.
 
 ## Evaluación (src/novapedidos/evaluacion/, evaluacion/)
 

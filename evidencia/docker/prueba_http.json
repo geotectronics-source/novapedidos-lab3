@@ -4,10 +4,10 @@
  "pedidos_exactos": 132,
  "fallas": [],
  "violaciones_de_contrato": {},
- "latencia_p50_s": 1.3,
- "latencia_p95_s": 1.79,
- "latencia_max_s": 2.14,
- "duracion_total_s": 44.0,
+ "latencia_p50_s": 1.29,
+ "latencia_p95_s": 1.77,
+ "latencia_max_s": 2.09,
+ "duracion_total_s": 43.9,
  "invalidas_ok": "8/8",
  "invalidas": [
   {
@@ -68,7 +68,7 @@
   }
  ],
  "eventos_mlflow": [
-  "MLflow detenido -> /health: degradado (MLflow no responde en http://mlflow:5000 (sin respuesta en 2.5 s))",
+  "MLflow detenido -> /health: degradado (MLflow no responde en http://mlflow:5000 (ConnectError))",
   "MLflow levantado de nuevo",
   "/health de vuelta en ok"
  ],

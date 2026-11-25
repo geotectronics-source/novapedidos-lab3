@@ -39,6 +39,10 @@ _FRACCION_VENTA = re.compile(
 _CORRECCION = re.compile(r"\b(que sean|que sea|mejor|corrij\w*|corrig\w*)\b", re.IGNORECASE)
 
 
+MAX_CANTIDAD = 10_000  # por encima, la cantidad no es creíble: va a revisión en vez de calcularse
+_CERO = re.compile(r"(?<![\d.,])0(?![\d.,])|\bcero\b", re.IGNORECASE)
+
+
 def cantidad_y_unidad(texto: str, cantidad: float | None) -> tuple[int | None, Unidad] | None:
     """Cantidad entera en la unidad que corresponde, o None si no es convertible (no se redondea).
 
@@ -46,6 +50,10 @@ def cantidad_y_unidad(texto: str, cantidad: float | None) -> tuple[int | None, U
     - Docenas -> unidades sueltas ("media docena" = 6 sueltas; el motor verifica la división exacta).
     """
     unidad = unidad_desde_texto(texto)
+    if _CERO.search(texto) or (cantidad is not None and cantidad <= 0):
+        return None  # "0 fardos": no se inventa 1 fardo (auditoría final)
+    if cantidad is not None and cantidad > MAX_CANTIDAD:
+        return None  # cantidad absurda (p. ej. 1e30 desbordaba Decimal -> 500): revisión humana
     if unidad is Unidad.DOCENA:
         sueltas = (1 if cantidad is None else cantidad) * 12
         return (int(sueltas), Unidad.SUELTA) if float(sueltas).is_integer() else None

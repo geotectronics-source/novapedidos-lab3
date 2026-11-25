@@ -6,6 +6,7 @@ Se define como un Protocol para que la API y las pruebas puedan usar un extracto
 
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from novapedidos.config import Settings
 from novapedidos.dominio.catalogo import Catalogo
 from novapedidos.llm.esquemas import Extraccion
 from novapedidos.llm.prompts import VERSION_PROMPT, mensaje_sistema, mensaje_usuario
+
+_ERROR_DE_METODO = re.compile(r"tool_choice|tools|response_format|json_schema|structured", re.IGNORECASE)
 
 
 class ErrorExtraccion(RuntimeError):
@@ -92,7 +95,14 @@ class ExtractorLLM:
             try:
                 return self._extraer_con(modelo, cadena, mensajes)
             except ErrorExtraccion as e:
-                if "Error code: 400" in str(e):  # el modelo no admite este método: no insistir en él
+                # Solo un 400 que culpa al método (no un 400 cualquiera) lo marca como incompatible, y
+                # nunca se descartan los dos métodos de un mismo modelo.
+                otro = next(m for mod, m, _ in self._cadenas if mod == modelo and m != metodo)
+                if (
+                    "Error code: 400" in str(e)
+                    and _ERROR_DE_METODO.search(str(e))
+                    and (modelo, otro) not in self._incompatibles
+                ):
                     self._incompatibles.add((modelo, metodo))
                 errores.append(f"[{metodo}] {e}")
         raise ErrorExtraccion(" | ".join(errores))
@@ -107,7 +117,9 @@ class ExtractorLLM:
             try:
                 respuesta = cadena.invoke(entrada)
             except Exception as e:  # red, timeout, 4xx/5xx tras los reintentos de ChatOpenAI
-                raise ErrorExtraccion(f"Falló la llamada al modelo {modelo}: {e}") from e
+                # El motivo real del proveedor viene en e.body ("tool_choice ... not supported"), no en str(e).
+                cuerpo = str(getattr(e, "body", "") or "")[:500]
+                raise ErrorExtraccion(f"Falló la llamada al modelo {modelo}: {e} {cuerpo}".strip()) from e
             raw = respuesta.get("raw")
             if raw is not None:
                 uso = raw.usage_metadata or {}

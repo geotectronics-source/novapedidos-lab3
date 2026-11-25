@@ -16,7 +16,8 @@
      "sku": "B01",
      "accion": "agregar",
      "cantidad": 30,
-     "unidad": "suelta"
+     "unidad": "suelta",
+     "texto": "30 botellas de kola 600"
     },
     {
      "sku": "B05",
@@ -48,7 +49,8 @@
      "sku": "B11",
      "accion": "agregar",
      "cantidad": 18,
-     "unidad": "suelta"
+     "unidad": "suelta",
+     "texto": "18 latas de energia max"
     },
     {
      "sku": "B07",
@@ -130,7 +132,8 @@
      "sku": "P01",
      "accion": "agregar",
      "cantidad": 1,
-     "unidad": "docena"
+     "unidad": "docena",
+     "texto": "una docena de jabón rosa"
     }
    ],
    "pendientes": []
@@ -155,7 +158,8 @@
      "sku": "A06",
      "accion": "agregar",
      "cantidad": 6,
-     "unidad": "suelta"
+     "unidad": "suelta",
+     "texto": "media docena de aceite dorado"
     },
     {
      "sku": "P03",
@@ -238,7 +242,8 @@
      "sku": "P02",
      "accion": "agregar",
      "cantidad": 36,
-     "unidad": "suelta"
+     "unidad": "suelta",
+     "texto": "36 sobres de shampoo brisa"
     },
     {
      "sku": "S04",

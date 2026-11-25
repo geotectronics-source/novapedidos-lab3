@@ -42,6 +42,68 @@ def test_mensajes_no_pueden_cerrar_el_bloque_de_datos():
     assert texto.count("</mensajes>") == 1 and texto.endswith("</mensajes>")
 
 
+def _extractor_con_cadenas(catalogo, comportamiento):
+    """ExtractorLLM real con las cadenas reemplazadas por funciones falsas (sin red)."""
+    from novapedidos.config import Settings
+    from novapedidos.llm.extractor import ErrorExtraccion
+
+    x = ExtractorLLM(Settings(_env_file=None, openrouter_api_key="x", modelo_llm="m"), catalogo)
+    llamadas = []
+
+    class Cadena:
+        def __init__(self, metodo):
+            self.metodo = metodo
+
+        def invoke(self, entrada):
+            llamadas.append(self.metodo)
+            resultado = comportamiento(self.metodo, len(llamadas))
+            if isinstance(resultado, Exception):
+                raise resultado
+            return {"raw": None, "parsed": Extraccion(es_pedido=False), "parsing_error": None}
+
+    x._cadenas = [(mod, met, Cadena(met)) for mod, met, _ in x._cadenas]
+    return x, llamadas, ErrorExtraccion
+
+
+def test_metodo_incompatible_se_recuerda_solo_si_el_400_lo_culpa(catalogo_real):
+    def sonnet(metodo, n):  # function_calling rechazado por tool_choice, como claude-sonnet-5.5
+        return (
+            RuntimeError("Error code: 400 - tool_choice not supported")
+            if metodo == "function_calling"
+            else None
+        )
+
+    x, llamadas, _ = _extractor_con_cadenas(catalogo_real, sonnet)
+    x.extraer(["a"])
+    x.extraer(["b"])
+    assert llamadas == [
+        "function_calling",
+        "json_schema",
+        "json_schema",
+    ]  # la 2.ª ya no prueba el método roto
+
+
+def test_un_400_cualquiera_no_descarta_el_metodo(catalogo_real):
+    def transitorio(metodo, n):  # un 400 sin relación con el método, solo la primera vez
+        return RuntimeError("Error code: 400 - Provider returned error") if n == 1 else None
+
+    x, llamadas, _ = _extractor_con_cadenas(catalogo_real, transitorio)
+    x.extraer(["a"])
+    x.extraer(["b"])
+    assert llamadas[-1] == "function_calling" and not x._incompatibles
+
+
+def test_nunca_se_descartan_los_dos_metodos(catalogo_real):
+    def todo_falla(metodo, n):
+        return RuntimeError("Error code: 400 - tool_choice/response_format not supported")
+
+    x, _, ErrorExtraccion = _extractor_con_cadenas(catalogo_real, todo_falla)
+    for _ in range(3):
+        with pytest.raises(ErrorExtraccion):
+            x.extraer(["a"])
+    assert len(x._incompatibles) == 1
+
+
 # ------------------------------------------------------------------ con el modelo real
 @pytest.fixture(scope="module")
 def interprete_real(catalogo_real):

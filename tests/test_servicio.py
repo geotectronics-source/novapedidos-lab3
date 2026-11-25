@@ -208,6 +208,39 @@ def test_fardo_y_medio_no_se_redondea(catalogo_real, cantidad_llm):
     assert [(p.motivo, p.opciones) for p in r.pendientes] == [(Motivo.CANTIDAD_NO_CONVERTIBLE, ["B07"])]
 
 
+# --- Regresiones de la auditoría final
+@pytest.mark.parametrize(
+    ("texto", "cantidad_llm"),
+    [("0 fardos de kola 600", None), ("cero fardos de kola 600", None), ("kola 600", 0.0), ("kola 600", -3)],
+)
+def test_cantidad_cero_o_negativa_no_se_convierte_en_uno(catalogo_real, texto, cantidad_llm):
+    # Antes "0 fardos" se confirmaba como 1 fardo (el LLM devolvía null y el código ponía 1).
+    menc = MencionExtraida.model_construct(
+        texto=texto,
+        producto="kola 600",
+        skus_posibles=["B01"],
+        cantidad=cantidad_llm,
+        unidad="venta",
+        accion="agregar",
+    )
+    e = Extraccion(es_pedido=True, menciones=[menc])
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert r.lineas == [] and r.motivos_revision == [Motivo.CANTIDAD_NO_CONVERTIBLE]
+
+
+def test_cantidad_absurda_va_a_revision_y_no_da_500(catalogo_real):
+    # Antes 1e30 fardos desbordaba Decimal (InvalidOperation) y la API respondía 500.
+    e = Extraccion(es_pedido=True, menciones=[m("1e30 fardos de kola 600", "kola 600", ["B01"], 1e30)])
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert r.lineas == [] and r.motivos_revision == [Motivo.CANTIDAD_NO_CONVERTIBLE]
+
+
+def test_cantidad_grande_pero_creible_se_procesa(catalogo_real):
+    e = Extraccion(es_pedido=True, menciones=[m("600 fardos de kola 600", "kola 600", ["B01"], 600)])
+    r = interprete(catalogo_real, e).interpretar("C010", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert [(x.sku, x.cantidad, x.descuento_pct) for x in r.lineas] == [("B01", 600, 5)]
+
+
 def test_litro_y_medio_es_presentacion_no_fraccion(catalogo_real):
     e = Extraccion(es_pedido=True, menciones=[m("3 kola de litro y medio", "kola 1.5 l", ["B02"], 3)])
     r = interprete(catalogo_real, e).interpretar("C027", datetime(2026, 11, 30, 7, 57), ["..."]).respuesta

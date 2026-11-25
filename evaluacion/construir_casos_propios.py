@@ -29,7 +29,8 @@ def main() -> None:
             datetime.fromisoformat(caso["fecha_hora"]),
             es_pedido=i["es_pedido"],
             pide_lo_de_siempre=i["pide_lo_de_siempre"],
-            operaciones=[Operacion(texto=o["sku"], **o) for o in i["operaciones"]],
+            # texto: el fragmento literal del mensaje si la fuente lo trae (si no, el SKU)
+            operaciones=[Operacion(**{"texto": o["sku"], **o}) for o in i["operaciones"]],
             pendientes_resolucion=[Pendiente(**p) for p in i["pendientes"]],
         )
         esperado = pedido.model_dump(mode="json", exclude={"cliente_id"})

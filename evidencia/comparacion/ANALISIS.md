@@ -27,7 +27,7 @@ interpretación**, recalcularon a mano cada caso desde los parquet: 48/48 correc
 
 Todas deterministas, gratis y reproducibles (`src/novapedidos/evaluacion/`): `pedido_exacto` (métrica principal:
 todo correcto a la vez), `estado_correcto`, `lineas_correctas`, `montos_correctos` (precio, descuento, subtotal),
-`fecha_correcta`, `motivos_correctos`, `pendientes_correctos` (motivo + opciones; el texto libre no cuenta),
+`total_correcto`, `fecha_correcta`, `motivos_correctos`, `pendientes_correctos` (motivo + opciones; el texto libre no cuenta),
 `sustituciones_correctas`, `lineas_f1` (crédito parcial), `contrato_valido` (invariantes del Anexo, sin necesitar
 la respuesta correcta), `mensaje_coherente` (§9), y `latencia_s` / `costo_usd` leídos de la traza.
 
@@ -57,13 +57,36 @@ genera con una plantilla a partir del pedido; sus requisitos (§9) se verifican 
   la estrategia híbrida: **la ambigüedad la decide el código**.
 - **deepseek (D025)**: extrajo "lo mismo que la vez pasada" como si fuera un producto → pendiente
   `producto_no_existe` extra (las líneas sí eran correctas).
-- **Variabilidad entre corridas**: en una corrida intermedia, haiku segmentó mal "pasta: 2, seis fardos de
-  espagueti" (1 vez en 264 interpretaciones de ese caso). Con temperatura 0 los modelos no son 100 % deterministas.
+- **Variabilidad entre corridas**: en una corrida intermedia (no publicada, con el código de ese momento), haiku
+  segmentó mal "pasta: 2, seis fardos de espagueti" en D008. Ese caso se interpretó bien en las otras corridas de
+  haiku híbrido: con temperatura 0 los modelos no son 100 % deterministas.
 
-### Límite estadístico
+### Dentro vs. fuera de muestra (lectura honesta del 100 %)
 
-Con 132 casos y 0 fallas, la tasa de error real podría llegar a ~2.3 % (regla del 3: 3/n, IC 95 %). Por eso
-**la calidad no distingue entre haiku, luna y sonnet**: la elección se decide por costo, latencia y operación.
+El 132/132 es exactitud **dentro de la muestra**: los 84 casos publicados se usaron para ajustar el prompt
+(v1 → v3, ver DECISIONES D10) y dos casos propios (PA11, PB05) revelaron defectos que se corrigieron. Por eso la
+cota "regla del 3" (~2.3 % de error) **no** se puede leer como el error esperado con mensajes nuevos.
+
+| Medición (haiku · híbrida) | Exactos | IC 95 % (Wilson) | Tipo |
+|---|---|---|---|
+| Prompt v1 sobre los 84 publicados, antes de ajustar | 72/84 = 85.7 % | [76.7 %, 91.6 %] | punto de partida |
+| **Primer contacto con los 48 casos propios** (creados después de cerrar el prompt v3; falló PA11) | **47/48 = 97.9 %** | **[89.1 %, 99.6 %]** | **fuera de muestra** |
+| Versión final sobre los 132 | 132/132 = 100 % | [97.2 %, 100 %] | dentro de la muestra |
+
+La mejor estimación de lo que verá el docente con mensajes no publicados es la **fuera de muestra (~98 %, con un
+intervalo amplio por el tamaño del conjunto)**. Además, las revisiones adversariales de los incisos 4 y 6 (537
+menciones y 267 solicitudes generadas por agentes) encontraron fallas en fenómenos que no estaban en ningún caso:
+con mensajes realmente nuevos es esperable una tasa de error algo mayor que la medida aquí.
+
+Para **comparar alternativas**, en cambio, todas se midieron sobre los mismos 132 casos: la comparación es
+justa entre ellas, y en este conjunto la calidad no distingue a haiku, luna y sonnet; por eso decidieron costo,
+latencia y operación.
+
+### Latencia: evaluación vs. servicio
+
+Las latencias de la tabla incluyen la exportación **síncrona** de trazas de la evaluación y 2–4 solicitudes en
+paralelo. La latencia del **servicio en Docker**, medida por HTTP (`evidencia/docker/prueba_http.json`), es
+menor: **p50 1.3 s, p95 1.8 s** sobre los 132 casos.
 
 ## 4. Hallazgos operativos (también son evidencia)
 
@@ -74,7 +97,19 @@ Con 132 casos y 0 fallas, la tasa de error real podría llegar a ~2.3 % (regla d
 | Un caso propio (PA11, "72 jaboncitos rosa **sueltos**") reveló que "sueltos" no se reconocía como unidad suelta | Corregido; sin casos propios habría pasado inadvertido |
 | Un caso propio (PB05, "de **naranjita** mejor 4") reveló que una corrección ambigua no usaba el contexto | Corregido: correcciones/exclusiones se resuelven con lo ya pedido |
 
-## 5. Decisión
+## 5. Evidencia en MLflow (capturas en `evidencia/mlflow/`)
+
+| Captura | Qué muestra |
+|---|---|
+| `trazas_lista.jpg` | Trazas de solicitudes reales (experimento `novapedidos`): entrada, salida, duración, estado y tokens |
+| `traza_detalle_ejemplo_anexo.jpg` | Árbol de spans del ejemplo del Anexo: `interpretar_pedido` → `extraccion` → `ChatOpenAI` (1.8 s, ~US$0.0006) → `resolucion` → `motor_reglas` |
+| `comparacion_pedido_exacto.jpg` | Gráfico de MLflow comparando `pedido_exacto` de los 7 runs finales (filtro `tags.comparacion_final = 'true'`) |
+| `evaluaciones_historial.jpg` | Historial de **todas** las evaluaciones del experimento `novapedidos-evaluacion`. Las caídas a 0 % y 28.8 % son intentos **descartados** de Sonnet (incompatibilidad de método y límite de 20 solicitudes/min) antes de corregirlos; se conservan como historial. Los resultados publicados son los runs con la etiqueta `comparacion_final` |
+
+Las evaluaciones se ejecutaron contra un MLflow local de desarrollo. El MLflow del `docker compose` arranca vacío:
+el experimento `novapedidos-evaluacion` aparece al correr `ejecutar` o `comparar` (ver README).
+
+## 6. Decisión
 
 - **Modelo principal: `anthropic/claude-haiku-5.5`** — 100 % en dos corridas, sin límite de solicitudes observado
   con 4 en paralelo, p95 < 4 s, US$0.61 por 1 000 pedidos.

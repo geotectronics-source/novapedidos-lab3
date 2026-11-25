@@ -54,10 +54,6 @@ class VerificadorMlflow:
     def _consultar_en_hilo(self) -> None:
         self._resultado = self._consultar()
 
-    def invalidar(self) -> None:
-        with self._lock:
-            self._ultimo = None
-
     def _consultar(self) -> EstadoDependencia:
         if not self.tracking_uri.lower().startswith(("http:", "https:")):
             return EstadoDependencia(True, f"almacenamiento local ({self.tracking_uri})")

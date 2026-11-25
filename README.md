@@ -25,7 +25,8 @@ lab3/
 └── catalogo_problemas.md
 ```
 
-(Si están en otra carpeta: `DATA_HOST_DIR=C:/ruta/a/la/carpeta` en `.env`.)
+(Si están en otra carpeta: `DATA_HOST_DIR=C:/ruta/a/la/carpeta` en `.env` para Docker; para las pruebas y los
+scripts de evaluación que corren fuera de Docker, ponga también `DATA_DIR` con la misma ruta.)
 
 **2. Configuración.** Copie el ejemplo y escriba su clave en `OPENROUTER_API_KEY`:
 
@@ -74,7 +75,8 @@ Notas para Windows: en PowerShell 5.1 no use `curl.exe -d '...'` (parte el JSON 
 recupera solo, sin reiniciar la API.
 
 **Puertos ocupados:** la API usa el 8000 (lo exige el contrato). Si el 5000 está ocupado por otro
-servicio, cambie el puerto de MLflow en `.env`: `MLFLOW_PUERTO_HOST=5001`.
+servicio, cambie el puerto de MLflow en `.env`: `MLFLOW_PUERTO_HOST=5001` (y, para los scripts de evaluación,
+`MLFLOW_TRACKING_URI=http://127.0.0.1:5001`).
 
 ## API
 
@@ -110,23 +112,25 @@ uv run python evaluacion/probar_http.py --interrumpir-mlflow
 # Evaluación en MLflow de una configuración (84 casos publicados + 48 propios)
 uv run python -m novapedidos.evaluacion.ejecutar --modelo anthropic/claude-haiku-5.5 --conjunto todos
 
-# Comparación completa de alternativas (7 configuraciones, ~US$1.8, ~25 min)
+# Comparación completa de alternativas (7 configuraciones, ~US$2, ~35–40 min por los límites de solicitudes)
 uv run python -m novapedidos.evaluacion.comparar
 ```
 
-Para que los scripts de evaluación escriban en el MLflow del compose, use en `.env`
-`MLFLOW_TRACKING_URI=http://127.0.0.1:5000` (el valor de `.env.example`).
-
-Resultados: MLflow (experimento `novapedidos-evaluacion`), [evidencia/comparacion/ANALISIS.md](evidencia/comparacion/ANALISIS.md)
-(análisis y elección del modelo) y [evidencia/docker/prueba_http.json](evidencia/docker/prueba_http.json).
+Los scripts escriben en el MLflow del compose con `MLFLOW_TRACKING_URI=http://127.0.0.1:5000` (el valor de
+`.env.example`). Ese MLflow arranca vacío: el experimento `novapedidos-evaluacion` aparece al correr `ejecutar`
+o `comparar`. Los resultados de la entrega (ejecutados en desarrollo) están versionados:
+[evidencia/comparacion/ANALISIS.md](evidencia/comparacion/ANALISIS.md) (análisis y elección del modelo),
+capturas de MLflow en [evidencia/mlflow/](evidencia/mlflow/) y la prueba en Docker en
+[evidencia/docker/prueba_http.json](evidencia/docker/prueba_http.json).
 Casos propios: [evaluacion/casos_propios.jsonl](evaluacion/casos_propios.jsonl) (mismo formato que `mensajes_dev.jsonl`).
 
 ## Desarrollo local (sin Docker)
 
 ```powershell
 uv sync
-uv run pytest                 # pruebas sin modelo (~380, ~15 s)
+uv run pytest                 # pruebas sin modelo (~390, ~15 s)
 uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
+docker compose up -d mlflow   # opcional: MLflow para las trazas (o TRAZAS_ACTIVAS=false en .env)
 uv run uvicorn novapedidos.api.app:app --port 8000
 ```
 
