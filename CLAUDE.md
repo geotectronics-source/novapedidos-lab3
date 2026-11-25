@@ -69,6 +69,14 @@ uv run ruff check . ; uv run ruff format .
 - La unidad se deriva del texto literal (`unidad_desde_texto`), no del LLM.
 - En pruebas usar `ExtractorFijo`; las que llaman al modelo real llevan `@pytest.mark.llm`.
 
+## API (src/novapedidos/api/)
+
+- `crear_app(settings, interprete, verificador_mlflow)` permite inyectar dobles; las pruebas de
+  `tests/api/` nunca llaman al modelo.
+- Validación en `api/esquemas.py` (422 en español, antes de llamar al modelo); 404 cliente; 503 LLM caído.
+- En esta máquina los puertos 8000 y 5000 pueden estar ocupados por otro proyecto (novamercado); para
+  pruebas locales usar `--port 8001` y `127.0.0.1` (no `localhost`, que agrega ~2 s en Windows).
+
 ## Convenciones
 
 - Código e identificadores en español (como el contrato de la API). Tipos en todas las firmas.

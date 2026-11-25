@@ -18,14 +18,37 @@ from datetime import datetime
 
 from novapedidos.dominio.catalogo import Catalogo
 from novapedidos.dominio.mensaje import redactar_mensaje
-from novapedidos.dominio.modelos import Accion, Operacion, Pendiente, RespuestaPedido, Unidad
+from novapedidos.dominio.modelos import Accion, Motivo, Operacion, Pendiente, RespuestaPedido, Unidad
 from novapedidos.dominio.motor import construir_pedido
 from novapedidos.llm.extractor import Extractor, ResultadoExtraccion
 from novapedidos.resolucion.combinar import Estrategia, resolver_mencion
 from novapedidos.resolucion.resolutor import Resolucion, Resolutor, TipoResolucion
 
-_SUELTAS = re.compile(r"\b(botell|latit|lata|bolsit|bolsa|unidad|sobres\b|sobrecit)", re.IGNORECASE)
+_SUELTAS = re.compile(r"\b(botell|latit|lata|bolsit|bolsa|unidad|paquet|sobres\b|sobrecit)", re.IGNORECASE)
 _DOCENAS = re.compile(r"\bdocenas?\b", re.IGNORECASE)
+# "un fardo y medio", "media caja": fracción de la unidad de venta. ("litro y medio" es una presentación.)
+_FRACCION_VENTA = re.compile(
+    r"(?<!litro )\by medi[oa]\b|\bmedi[oa] (fardo|caja|display|quintal)", re.IGNORECASE
+)
+# Red de seguridad para correcciones que el modelo marque como "agregar" ("de arroz que sean 3").
+_CORRECCION = re.compile(r"\b(que sean|que sea|mejor|corrij\w*|corrig\w*)\b", re.IGNORECASE)
+
+
+def cantidad_y_unidad(texto: str, cantidad: float | None) -> tuple[int | None, Unidad] | None:
+    """Cantidad entera en la unidad que corresponde, o None si no es convertible (no se redondea).
+
+    - Fracción de la unidad de venta ("un fardo y medio") -> None (cantidad_no_convertible).
+    - Docenas -> unidades sueltas ("media docena" = 6 sueltas; el motor verifica la división exacta).
+    """
+    unidad = unidad_desde_texto(texto)
+    if unidad is Unidad.DOCENA:
+        sueltas = (1 if cantidad is None else cantidad) * 12
+        return (int(sueltas), Unidad.SUELTA) if float(sueltas).is_integer() else None
+    if unidad is Unidad.VENTA and _FRACCION_VENTA.search(texto):
+        return None
+    if cantidad is not None and not float(cantidad).is_integer():
+        return None
+    return (None if cantidad is None else int(cantidad)), unidad
 
 
 def unidad_desde_texto(texto: str) -> Unidad:
@@ -42,12 +65,13 @@ def unidad_desde_texto(texto: str) -> Unidad:
     return Unidad.VENTA
 
 
-def texto_sin_cantidad(texto: str, cantidad: int | None) -> str:
+def texto_sin_cantidad(texto: str, cantidad: float | None) -> str:
     """'arroz quintal: 2' -> 'arroz quintal'. Así el número del pedido no se confunde con una presentación."""
     if cantidad is None:
         return texto
-    return re.sub(rf"(?<![\d.,]){cantidad}(?![\d.,]|\s*(ml|l|lt|litros?|lb|libras?|g|gr|gramos?|rollos?)\b)",
-                  " ", texto, count=1, flags=re.IGNORECASE)  # fmt: skip
+    numero = re.escape(str(int(cantidad)) if float(cantidad).is_integer() else str(cantidad))
+    medida = r"\s*(ml|l|lt|litros?|lb|libras?|g|gr|gramos?|rollos?)\b"  # "600 ml" es presentación
+    return re.sub(rf"(?<![\d.,]){numero}(?![\d.,]|{medida})", " ", texto, count=1, flags=re.IGNORECASE)
 
 
 @dataclass
@@ -99,6 +123,8 @@ class InterpreteDePedidos:
         resueltos: set[str] = set()
         for m in ext.extraccion.menciones:
             accion = Accion(m.accion)
+            if accion is Accion.AGREGAR and _CORRECCION.search(m.texto):
+                accion = Accion.CORREGIR  # "de arroz que sean 3": reemplaza, no suma (§2)
             r = resolver_mencion(
                 self.resolutor,
                 m.producto,
@@ -110,15 +136,23 @@ class InterpreteDePedidos:
                 skus_previos=frozenset(resueltos),
             )
             resoluciones.append((m.producto, r))
-            if r.tipo is TipoResolucion.UNICO:
+            if r.tipo is TipoResolucion.UNICO and accion is Accion.QUITAR:
+                operaciones.append(Operacion(sku=r.sku, texto=m.texto, accion=accion))
+            elif r.tipo is TipoResolucion.UNICO:
                 resueltos.add(r.sku)
+                cantidad = cantidad_y_unidad(m.texto, m.cantidad)
+                if cantidad is None:  # "un fardo y medio": no se redondea -> revisión
+                    pendiente = Pendiente(
+                        motivo=Motivo.CANTIDAD_NO_CONVERTIBLE, texto=m.texto, opciones=[r.sku]
+                    )
+                    if accion is Accion.CORREGIR:  # la corrección invalida lo pedido antes de ese producto
+                        operaciones.append(Operacion(sku=r.sku, texto=m.texto, accion=Accion.QUITAR))
+                    if pendiente not in pendientes:
+                        pendientes.append(pendiente)
+                    continue
                 operaciones.append(
                     Operacion(
-                        sku=r.sku,
-                        texto=m.texto,
-                        accion=accion,
-                        cantidad=m.cantidad,
-                        unidad=unidad_desde_texto(m.texto),
+                        sku=r.sku, texto=m.texto, accion=accion, cantidad=cantidad[0], unidad=cantidad[1]
                     )
                 )
             elif accion is Accion.QUITAR:

@@ -132,5 +132,34 @@ consideraron y por qué. Se completa a medida que avanza el laboratorio.
 - **Motivo:** en las pruebas, `openai/gpt-6-luna` respondió 429 (límite de 20 solicitudes/minuto para cuentas
   nuevas). El cliente se valida antes de llamar al modelo (404 sin gastar tokens).
 
+## D14. API: validación antes del modelo y códigos de respuesta
+
+| Situación | Respuesta | Nota |
+|---|---|---|
+| Pedido interpretado | 200 + contrato del Anexo | `response_model=RespuestaPedido` garantiza las claves y los tipos |
+| Cliente inexistente | 404 | Se valida **antes** de llamar al modelo (no gasta tokens) |
+| Campos faltantes, tipos erróneos, lista vacía, mensaje en blanco, fecha que no cumple `AAAA-MM-DDTHH:MM` o fuera de 2000–2100, cuerpo que no es JSON UTF-8 | 422 + `detail` en español + `errores[{campo, mensaje}]` | FastAPI daría 400 con cuerpos en cp1252 (curl en Windows): se convierte a 422 |
+| El LLM no responde tras reintentos y respaldo | 503 + `Retry-After: 5` | Ver abajo |
+| Datos no cargados | 503 en POST, `/health` degradado | El proceso no se cae |
+
+- **Fecha estricta:** solo `AAAA-MM-DDTHH:MM` (el formato del contrato); se rechazan segundos y zona horaria.
+- **Límites:** máx. 20 mensajes, 2 000 caracteres por mensaje y 6 000 en total (acotan costo y latencia).
+- **¿Por qué 503 si el modelo falla?** No hay un motivo de revisión para "no pude leer el mensaje", y devolver
+  un pedido inventado o vacío como 200 sería engañoso. El 503 es honesto y reintentable.
+- **`/health`:** `ok` / `degradado` + `motivo`, con `dependencias` (datos, mlflow, llm). MLflow se consulta en
+  su `/health` con timeout de 2 s y caché de 5 s, para que `/health` responda rápido aunque MLflow esté caído.
+- **Evidencia:** 357 pruebas sin modelo; ataque de agentes con 267 solicitudes (137 inválidas, 38 mensajes no
+  publicados contra el servidor real, 92 de fallas de dependencias): 5 defectos reales corregidos con pruebas de
+  regresión: "24 paquetes" (se cobraban como displays), corrección sobre "lo de siempre", "un quintal de arroz",
+  "un fardo y medio" (se redondeaba) y año 9999 (500).
+
+## D15. Cantidades fraccionarias y correcciones: el LLM informa, el código decide
+
+- El esquema acepta `cantidad` decimal para que el modelo **no redondee** ("un fardo y medio" → 1.5); el código
+  la convierte en `cantidad_no_convertible`. Una expresión regular sobre el texto ("y medio", "media caja") actúa
+  como red si el modelo redondea igual. "Litro y medio" se excluye (es presentación).
+- "media docena" = 6 unidades sueltas; el motor verifica si la división es exacta.
+- Una mención "agregar" cuyo texto dice "que sean", "mejor" o "corrijo" se trata como corrección (§2).
+
 <!-- Pendientes: modelo elegido (Inciso 8), tolerancia a fallas de MLflow (Inciso 7),
-     técnica de calificación (Inciso 8), qué responde la API si el LLM no está disponible (Inciso 6). -->
+     técnica de calificación (Inciso 8). -->

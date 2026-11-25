@@ -132,6 +132,58 @@ def test_skus_inventados_por_el_llm_se_descartan(catalogo_real):
         assert r.lineas == [] and r.pendientes[0].motivo is Motivo.PRODUCTO_NO_EXISTE
 
 
+# --- Regresiones del ataque a la API (situaciones fuera de los casos publicados)
+def test_paquetes_son_unidades_sueltas(catalogo_real):
+    # S01 es un display de 12 paquetes: 24 paquetes = 2 displays (antes se cobraban 24 displays).
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[m("24 paquetes de galletas dulcitas vainilla", "dulcitas vainilla", ["S01"], 24)],
+    )
+    r = interprete(catalogo_real, e).interpretar("C028", datetime(2026, 11, 25, 10, 30), ["..."]).respuesta
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("S01", 2)]
+
+
+def test_correccion_sobre_lo_de_siempre_reemplaza(catalogo_real):
+    # C015: el último pedido entregado trae A02 x2. "de arroz quintal que sean 3" -> 3, no 5.
+    e = Extraccion(
+        es_pedido=True,
+        pide_lo_de_siempre=True,
+        menciones=[m("de arroz quintal que sean 3", "arroz quintal", ["A02"], 3)],  # el LLM dijo "agregar"
+    )
+    r = interprete(catalogo_real, e).interpretar("C015", datetime(2026, 11, 25, 9, 40), ["..."]).respuesta
+    assert dict((x.sku, x.cantidad) for x in r.lineas)["A02"] == 3
+
+
+def test_un_quintal_de_arroz_no_es_ambiguo(catalogo_real):
+    e = Extraccion(es_pedido=True, menciones=[m("un quintal de arroz", "arroz quintal", ["A02"], 1)])
+    r = interprete(catalogo_real, e).interpretar("C039", datetime(2026, 12, 10, 10, 40), ["..."]).respuesta
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("A02", 1)] and r.pendientes == []
+
+
+@pytest.mark.parametrize("cantidad_llm", [1.5, 1])  # aunque el modelo redondee, el texto lo delata
+def test_fardo_y_medio_no_se_redondea(catalogo_real, cantidad_llm):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[m("un fardo y medio de agua pura 600", "agua pura 600", ["B07"], cantidad_llm)],
+    )
+    r = interprete(catalogo_real, e).interpretar("C030", datetime(2026, 11, 25, 11), ["..."]).respuesta
+    assert r.lineas == []
+    assert [(p.motivo, p.opciones) for p in r.pendientes] == [(Motivo.CANTIDAD_NO_CONVERTIBLE, ["B07"])]
+
+
+def test_litro_y_medio_es_presentacion_no_fraccion(catalogo_real):
+    e = Extraccion(es_pedido=True, menciones=[m("3 kola de litro y medio", "kola 1.5 l", ["B02"], 3)])
+    r = interprete(catalogo_real, e).interpretar("C027", datetime(2026, 11, 30, 7, 57), ["..."]).respuesta
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("B02", 3)]
+
+
+def test_media_docena(catalogo_real):
+    # L03 caja de 12: media docena = 6 botellas -> no exacto; P01 caja de 24 tampoco.
+    e = Extraccion(es_pedido=True, menciones=[m("media docena de cloro", "cloro", ["L03"], 0.5, "docena")])
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 9), ["..."]).respuesta
+    assert r.motivos_revision == [Motivo.CANTIDAD_NO_CONVERTIBLE]
+
+
 @pytest.mark.parametrize(
     ("texto", "unidad"),
     [

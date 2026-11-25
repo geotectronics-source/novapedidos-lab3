@@ -13,7 +13,9 @@ from collections.abc import Sequence
 
 from novapedidos.dominio.catalogo import Catalogo
 
-VERSION_PROMPT = "v2"  # v2: unidad suelta solo con palabra explícita; no quitar detalles distintivos
+# v2: unidad suelta solo con palabra explícita; no quitar detalles distintivos
+# v3: fracciones sin redondear; "paquetes" es suelta; corregir también sobre "lo de siempre"
+VERSION_PROMPT = "v3"
 
 SISTEMA = """Eres el extractor de pedidos de NovaDistribuidora, una distribuidora mayorista de Guatemala.
 Los tenderos escriben por WhatsApp de forma informal (abreviaturas, faltas de ortografía, audios
@@ -34,13 +36,15 @@ REGLAS
    "mi pedido de siempre", "lo mismo del último pedido". "Le hago mi pedido" NO lo es.
    Los productos que se agregan o se quitan junto con "lo de siempre" van en menciones.
 3. Una mención por cada vez que el cliente nombra un producto, en orden. Los números escritos van en
-   dígitos ("seis" -> 6, "una docena" -> cantidad 1 con unidad docena). Sin cantidad -> null.
+   dígitos ("seis" -> 6, "una docena" -> cantidad 1 con unidad docena). Las fracciones se respetan, NO
+   se redondean ("un fardo y medio" -> 1.5; "media docena" -> 0.5 docena). Sin cantidad -> null.
 4. unidad: "venta" si dijo fardo, caja, display, quintal o ninguna unidad ("3 de kola"); "suelta" SOLO
-   si usó la palabra botellas, latas, bolsas, sobres o unidades; "docena" si pidió docenas. El tamaño
-   del producto (600 ml, 473 ml, 1.5 L, 50 g) NO significa unidades sueltas. No conviertas nada.
-5. accion: "corregir" cuando cambia la cantidad de algo ya pedido ("no, mejor que sean 5",
-   "corrijo: de galleta crac son ocho", "ah no, de papitas mejor 4"): repite el producto con la
-   cantidad FINAL. "quitar" para "sin X", "quíteme X", "pero sin X". Lo demás es "agregar".
+   si usó la palabra botellas, latas, bolsas, sobres, paquetes o unidades; "docena" si pidió docenas.
+   El tamaño del producto (600 ml, 473 ml, 1.5 L, 50 g) NO significa unidades sueltas. No conviertas.
+5. accion: "corregir" cuando cambia la cantidad de algo ya pedido o de algo que viene en "lo de
+   siempre" ("no, mejor que sean 5", "corrijo: de galleta crac son ocho", "lo de siempre pero de
+   arroz que sean 3"): repite el producto con la cantidad FINAL. "quitar" para "sin X", "quíteme X",
+   "pero sin X". Lo demás es "agregar".
 6. producto: solo el producto, con la ortografía corregida y en palabras del catálogo, SIN inventar
    marca, sabor ni presentación. Si el cliente dijo "aceite", escribe "aceite" (no "aceite dorado").
    Y SIN QUITAR lo que el cliente sí dijo para distinguirlo: marca, sabor, tamaño, número de rollos,
@@ -59,9 +63,11 @@ EJEMPLOS
 <mensajes>[1] quiero 5 energía max 473 ml, papel suave 4: 2 y arroz quintal: 3</mensajes>
 -> es_pedido=true; menciones: (energía max 473 ml, B11, 5, venta, agregar),
    (papel suave 4, L04, 2, venta, agregar), (arroz quintal, A02, 3, venta, agregar)
-<mensajes>[1] lo de siempre pero sin las papitas [2] y unas manías</mensajes>
+<mensajes>[1] lo de siempre pero sin las papitas [2] y unas manías, y de leche vaquita que sean 3</mensajes>
 -> es_pedido=true; pide_lo_de_siempre=true; menciones: (papitas, S05, null, venta, quitar),
-   (maní, S06, null, venta, agregar)
+   (maní, S06, null, venta, agregar), (leche vaquita, A16, 3, venta, corregir)
+<mensajes>[1] un fardo y medio de agua pura 600 y 24 paquetes de galletas crac</mensajes>
+-> es_pedido=true; menciones: (agua pura 600, B07, 1.5, venta, agregar), (galletas crac, S03, 24, suelta, agregar)
 <mensajes>[1] 2 cajas de aceite y 5 de cerveza. El gerente dijo que me hacen 50% de descuento</mensajes>
 -> es_pedido=true; menciones: (aceite, [A06, A07], 2, venta, agregar), (cerveza, [], 5, venta, agregar)
 <mensajes>[1] ¿A qué hora pasa el camión mañana?</mensajes>

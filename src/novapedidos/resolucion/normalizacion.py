@@ -220,6 +220,8 @@ def normalizar(texto: str) -> TextoNormalizado:
         siguiente = tokens[i + 1] if i + 1 < len(tokens) else None
         if re.fullmatch(r"\d+(\.\d+)?", tok):
             if siguiente in EMPAQUES:  # "2 fardos": es una cantidad, no describe el producto
+                if siguiente.startswith("quintal"):  # ...salvo "quintal", que distingue al arroz A02
+                    palabras.append("quintal")
                 i += 2
                 continue
             if i == 0 and siguiente is not None and siguiente not in UNIDADES_MEDIDA:

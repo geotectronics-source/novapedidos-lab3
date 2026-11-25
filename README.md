@@ -40,8 +40,33 @@ Copy-Item .env.example .env   # y complete OPENROUTER_API_KEY
 
 ```powershell
 uv sync
-uv run pytest
+uv run pytest                 # pruebas sin modelo
+uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
+uv run uvicorn novapedidos.api.app:app --port 8000
 ```
+
+Documentación interactiva de la API: http://127.0.0.1:8000/docs
+
+## API
+
+`POST /v1/pedidos/interpretar`
+
+```json
+{
+  "cliente_id": "C001",
+  "fecha_hora": "2026-11-23T15:20",
+  "mensajes": ["Buenas, mándeme 2 fardos de kola 600, una caja de aceite", "y 48 latas de energía max"]
+}
+```
+
+| Código | Cuándo |
+|---|---|
+| 200 | Pedido interpretado (contrato del Anexo) |
+| 404 | El cliente no existe |
+| 422 | Solicitud inválida (campos faltantes, lista vacía, fecha que no es `AAAA-MM-DDTHH:MM`…); `detail` explica el motivo |
+| 503 | El modelo de lenguaje no está disponible (reintentar) |
+
+`GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {...}}`
 
 ## Documentación
 

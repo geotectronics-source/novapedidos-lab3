@@ -26,19 +26,23 @@ class MencionExtraida(BaseModel):
         description="SKUs del catálogo que podrían ser lo que pidió el cliente: uno si es inequívoco, TODOS "
         "los que encajen si es ambiguo (ej. 'aceite' -> ['A06','A07']), lista vacía si no se vende.",
     )
-    cantidad: int | None = Field(
-        default=None, ge=1, description="Número pedido, en dígitos. null si el cliente no dijo cantidad."
+    cantidad: float | None = Field(
+        default=None,
+        gt=0,
+        description="Número pedido, en dígitos, tal como lo dijo (fracciones incluidas: 'un fardo y medio' -> "
+        "1.5, 'media docena' -> 0.5). null si el cliente no dijo cantidad. No redondees.",
     )
     unidad: Literal["venta", "suelta", "docena"] = Field(
         default="venta",
         description="'venta' si dijo fardo/caja/display/quintal o no dijo unidad; 'suelta' si pidió "
-        "botellas, latas, bolsas, sobres o unidades sueltas; 'docena' si pidió docenas.",
+        "botellas, latas, bolsas, sobres, paquetes o unidades sueltas; 'docena' si pidió docenas.",
     )
     accion: Literal["agregar", "corregir", "quitar"] = Field(
         default="agregar",
         description="'agregar' para un pedido normal; 'corregir' cuando el cliente cambia la cantidad de "
-        "algo que ya pidió ('no, mejor que sean 5', 'corrijo: de X son 8'), con la cantidad FINAL; "
-        "'quitar' cuando pide no incluir algo ('pero sin las papitas', 'quíteme la sal').",
+        "algo que ya pidió o que viene en 'lo de siempre' ('no, mejor que sean 5', 'corrijo: de X son 8', "
+        "'lo de siempre pero de X que sean 3'), con la cantidad FINAL; 'quitar' cuando pide no incluir algo "
+        "('pero sin las papitas', 'quíteme la sal').",
     )
 
 
