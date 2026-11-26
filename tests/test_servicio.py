@@ -235,6 +235,14 @@ def test_cantidad_absurda_va_a_revision_y_no_da_500(catalogo_real):
     assert r.lineas == [] and r.motivos_revision == [Motivo.CANTIDAD_NO_CONVERTIBLE]
 
 
+def test_pedido_grande_entero_se_calcula_y_va_a_revision_por_credito(catalogo_real):
+    # Auditoría Codex N15: 10 001 fardos caían en cantidad_no_convertible (tope de 10 000).
+    e = Extraccion(es_pedido=True, menciones=[m("10001 fardos de kola 600", "kola 600", ["B01"], 10001)])
+    r = interprete(catalogo_real, e).interpretar("C001", datetime(2026, 11, 23, 15, 20), ["..."]).respuesta
+    assert [(x.sku, x.cantidad, x.descuento_pct) for x in r.lineas] == [("B01", 10001, 5)]
+    assert r.total == 1140114.0 and r.motivos_revision == [Motivo.CREDITO_EXCEDIDO] and r.pendientes == []
+
+
 def test_cantidad_grande_pero_creible_se_procesa(catalogo_real):
     e = Extraccion(es_pedido=True, menciones=[m("600 fardos de kola 600", "kola 600", ["B01"], 600)])
     r = interprete(catalogo_real, e).interpretar("C010", datetime(2026, 11, 23, 9), ["..."]).respuesta
@@ -263,6 +271,17 @@ def test_media_docena(catalogo_real):
         ("una docena de cloro", Unidad.DOCENA),
         ("5 shampoo birsa sobre 10 ml", Unidad.VENTA),  # "sobre" es parte del nombre
         ("12 sobres de shampoo", Unidad.SUELTA),
+        ("1 sobre de shampoo Brisa de 10 ml", Unidad.SUELTA),  # auditoría Codex N08
+        ("un sobre de shampoo brisa", Unidad.SUELTA),
+        ("shampoo brisa sobre de 10 ml", Unidad.VENTA),  # sin cantidad delante: es el nombre
+        ("3 de shampoo brisa sobre 10 ml", Unidad.VENTA),
+        # Revisión adversarial del Inciso 11: variantes y "sobre" como preposición
+        ("un solo sobre de shampoo brisa", Unidad.SUELTA),
+        ("otro sobre de shampoo brisa", Unidad.SUELTA),
+        ("1sobre de shampoo brisa", Unidad.SUELTA),
+        ("un sobresito de shampoo brisa", Unidad.SUELTA),
+        ("3 fardos de kola 600 sobre lo de siempre", Unidad.VENTA),
+        ("kola 600 sobre el pedido de ayer", Unidad.VENTA),
         ("5 energía max 473 ml", Unidad.VENTA),
         ("72 jaboncitos rosa sueltos", Unidad.SUELTA),  # caso propio PA11: antes eran 72 cajas
         ("30 sueltas de agua pura", Unidad.SUELTA),
@@ -287,3 +306,208 @@ def test_texto_sin_cantidad(texto, cantidad, esperado):
     assert (
         texto_sin_cantidad(texto, cantidad).replace("  ", " ").strip() == esperado.replace("  ", " ").strip()
     )
+
+
+# --- Regresiones de la auditoría de Codex (mensajes inéditos N04–N08): una rectificación reemplaza
+#     lo pedido ANTES, incluidos sus pendientes (politicas.md §2).
+C001 = ("C001", datetime(2026, 11, 23, 15, 20))
+
+
+def test_quitar_producto_ambiguo_elimina_su_pendiente(catalogo_real):
+    # N04: "4 fardos de kola 600 y 2 cajas de aceite" + "ya no quiero el aceite" -> confirmado.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("4 fardos de kola 600", "kola 600", ["B01"], 4),
+            m("2 cajas de aceite", "aceite", ["A06", "A07"], 2),
+            m("ya no quiero el aceite", "aceite", accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.CONFIRMADO and r.pendientes == [] and r.total == 480.0
+
+
+def test_cancelar_producto_inexistente_elimina_su_pendiente(catalogo_real):
+    # N05: "dos cajas de cerveza" + "cancele la cerveza" -> confirmado con la kola.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("2 fardos de kola 600", "kola 600", ["B01"], 2),
+            m("dos cajas de cerveza", "cervezas", [], 2),
+            m("cancele la cerveza", "cerveza", accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.CONFIRMADO and r.pendientes == [] and r.total == 240.0
+
+
+def test_quitar_otro_producto_inexistente_no_elimina_el_pendiente(catalogo_real):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("dos cajas de cerveza", "cerveza", [], 2),
+            m("sin el vino", "vino", accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert [(p.motivo, p.texto) for p in r.pendientes] == [(Motivo.PRODUCTO_NO_EXISTE, "cerveza")]
+
+
+@pytest.mark.parametrize("producto_primero", ["kola 600", "kola"])  # el LLM puede perder el "600"
+def test_quitar_producto_con_fraccion_elimina_su_pendiente(catalogo_real, producto_primero):
+    # N06: "un fardo y medio de kola 600 y 1 fardo de agua pura 600" + "quite por completo la kola".
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("un fardo y medio de kola", producto_primero, [], 1.5),
+            m("1 fardo de agua pura 600", "agua pura 600", ["B07"], 1),
+            m("quite por completo la kola", "kola", accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.CONFIRMADO and r.pendientes == []
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("B07", 1)]
+
+
+def test_corregir_fraccion_a_cantidad_entera_elimina_el_pendiente(catalogo_real):
+    # N07: "un fardo y medio de kola 600" + "corrija a 2 fardos de kola 600" -> B01 x2 confirmado.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("un fardo y medio de kola 600", "kola 600", ["B01"], 1.5),
+            m("corrija a 2 fardos de kola 600", "kola 600", ["B01"], 2, accion="corregir"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.CONFIRMADO and r.pendientes == []
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("B01", 2)]
+
+
+def test_corregir_entera_a_fraccion_deja_un_solo_pendiente(catalogo_real):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("2 fardos de kola 600", "kola 600", ["B01"], 2),
+            m("mejor un fardo y medio de kola 600", "kola 600", ["B01"], 1.5, accion="corregir"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.lineas == [] and [p.motivo for p in r.pendientes] == [Motivo.CANTIDAD_NO_CONVERTIBLE]
+
+
+def test_corregir_ambiguo_con_producto_preciso_resuelve_la_ambiguedad(catalogo_real):
+    # "una caja de aceite" + "mejor que sean 2 de girasol dorado": el cliente aclaró cuál.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("una caja de aceite", "aceite", ["A06", "A07"], 1),
+            m("mejor que sean 2 de girasol dorado", "aceite girasol dorado", ["A06"], 2, accion="corregir"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.pendientes == [] and [(x.sku, x.cantidad) for x in r.lineas] == [("A06", 2)]
+
+
+def test_quitar_producto_ya_pedido_no_borra_otro_pendiente_ambiguo(catalogo_real):
+    # "2 fardos de kola 600 y una kola" + "quite la kola 600": la exclusión es de la línea B01;
+    # la otra "kola" sigue sin saberse cuál es -> revisión.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("2 fardos de kola 600", "kola 600", ["B01"], 2),
+            m("y una kola", "kola", [], 1),
+            m("quite la kola 600", "kola 600", ["B01"], accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.lineas == [] and [p.motivo for p in r.pendientes] == [Motivo.PRODUCTO_AMBIGUO]
+
+
+def test_agregar_no_rectifica_pendientes_anteriores(catalogo_real):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("una caja de aceite", "aceite", ["A06", "A07"], 1),
+            m("y 2 de girasol dorado", "aceite girasol dorado", ["A06"], 2),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert [p.motivo for p in r.pendientes] == [Motivo.PRODUCTO_AMBIGUO]
+
+
+def test_un_sobre_suelto_no_se_cobra_como_display(catalogo_real):
+    # N08: P02 es un display de 24 sobres; 1 sobre no es exacto -> revisión, no 1 display por Q36.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[m("1 sobre de shampoo Brisa de 10 ml", "shampoo brisa 10 ml", ["P02"], 1, "suelta")],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.lineas == [] and r.motivos_revision == [Motivo.CANTIDAD_NO_CONVERTIBLE]
+    assert r.pendientes[0].opciones == ["P02"]
+
+
+# --- Regresiones de la revisión adversarial del Inciso 11: ante la duda, el pendiente se conserva.
+def test_excluir_una_opcion_de_un_ambiguo_conserva_el_pendiente(catalogo_real):
+    # "1 kola" + "pero no la de 600": sigue sin saberse si es B02 o B03 (antes se confirmaba sin kola).
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("1 kola", "kola", [], 1),
+            m("2 de agua pura 600", "agua pura 600", ["B07"], 2),
+            m("pero no la de 600", "kola 600", ["B01"], accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.REQUIERE_REVISION
+    esperado = [(Motivo.PRODUCTO_AMBIGUO, ["B01", "B02", "B03"])]
+    assert [(p.motivo, p.opciones) for p in r.pendientes] == esperado
+
+
+def test_excluir_una_marca_de_aceite_ambiguo_conserva_el_pendiente(catalogo_real):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("una caja de aceite", "aceite", ["A06", "A07"], 1),
+            m("sin el girasol dorado", "aceite girasol dorado", ["A06"], accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert r.estado is Estado.REQUIERE_REVISION and r.pendientes[0].opciones == ["A06", "A07"]
+
+
+def test_quitar_otra_variante_inexistente_no_borra_el_pendiente(catalogo_real):
+    # "kola norte light" no existe; "quite la kola de 2 litros" (nunca pedida) no es la misma.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("2 fardos de kola 600", "kola 600", ["B01"], 2),
+            m("1 fardo de kola norte light", "kola norte light", [], 1),
+            m("quite la kola de 2 litros", "kola 2 litros", [], accion="quitar"),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert [(p.motivo, p.texto) for p in r.pendientes] == [(Motivo.PRODUCTO_NO_EXISTE, "kola norte light")]
+
+
+def test_red_de_correccion_no_borra_el_pendiente_de_otra_mencion(catalogo_real):
+    # El modelo marca ambas como "agregar"; "que sea" activa la red _CORRECCION, pero eso no aclara el
+    # aceite ambiguo de la primera mención: son dos productos pedidos.
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[
+            m("una caja de aceite", "aceite", ["A06", "A07"], 1),
+            m("y 2 cajas de girasol dorado, que sea del de 750", "aceite girasol dorado", ["A06"], 2),
+        ],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert [p.motivo for p in r.pendientes] == [Motivo.PRODUCTO_AMBIGUO]
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("A06", 2)]
+
+
+def test_preposicion_sobre_no_convierte_fardos_en_sueltas(catalogo_real):
+    e = Extraccion(
+        es_pedido=True,
+        menciones=[m("3 fardos de kola 600 sobre lo de siempre", "kola 600", ["B01"], 3)],
+    )
+    r = interprete(catalogo_real, e).interpretar(*C001, ["..."]).respuesta
+    assert [(x.sku, x.cantidad) for x in r.lineas] == [("B01", 3)] and r.pendientes == []

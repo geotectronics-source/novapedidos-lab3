@@ -82,6 +82,19 @@ def test_error_de_prediccion_falla_todo():
         ({"motivos_revision": ["producto_ambiguo", "credito_excedido", "otro"]}, "motivos inválidos"),
         ({"total": 1.0}, "suma de subtotales"),
         ({"mensaje_cliente": None, "extra": 1}, "claves"),
+        # Auditoría Codex: tipos y formatos del Anexo
+        ({"estado": "inventado"}, "estado inválido"),
+        ({"fecha_entrega": "martes"}, "AAAA-MM-DD"),
+        ({"fecha_entrega": None}, "AAAA-MM-DD"),
+        ({"total": "840"}, "total no numérico"),
+        ({"mensaje_cliente": None}, "mensaje_cliente"),
+        ({"pendientes": [{"motivo": "inventado", "texto": "x", "opciones": []}]}, "pendiente inválido"),
+        ({"pendientes": [{"motivo": "producto_ambiguo", "opciones": ["A06"]}]}, "pendiente con claves"),
+        ({"lineas": [{"sku": "B01", "cantidad": 2}]}, "línea con claves"),
+        (
+            {"sustituciones": [{"sku_solicitado": "A07", "sku_entregado": "A06", "cantidad": "1"}]},
+            "sustitución",
+        ),
     ],
 )
 def test_contrato_detecta_incoherencias(cambio, fragmento):

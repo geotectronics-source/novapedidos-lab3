@@ -6,6 +6,7 @@
 
 Uso:  uv run --script eda/01_explorar_datos.py
 """
+
 from pathlib import Path
 
 import pandas as pd

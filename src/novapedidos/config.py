@@ -38,10 +38,6 @@ class Settings(BaseSettings):
     mlflow_timeout_s: float = 2.0
     trazas_activas: bool = Field(default=True, description="Enviar trazas de cada solicitud a MLflow")
 
-    @property
-    def datos_dir(self) -> Path:
-        return self.data_dir / "datos"
-
 
 @lru_cache
 def get_settings() -> Settings:

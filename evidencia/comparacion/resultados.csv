@@ -1,8 +1,8 @@
 nombre,modelo,estrategia,n_casos,errores,pedido_exacto,estado_correcto,lineas_correctas,montos_correctos,total_correcto,fecha_correcta,motivos_correctos,pendientes_correctos,sustituciones_correctas,lineas_f1,contrato_valido,mensaje_coherente,latencia_p50_s,latencia_p95_s,costo_por_1000_pedidos_usd,costo_total_usd
-haiku-hibrida,anthropic/claude-haiku-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.505,3.732,0.611,0.08064
-haiku-hibrida-rep2,anthropic/claude-haiku-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.43,3.411,0.611,0.08064
-haiku-determinista,anthropic/claude-haiku-5.5,determinista,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.977,3.38,0.611,0.08065
-haiku-solo-llm,anthropic/claude-haiku-5.5,llm,132,0,0.9773,0.9924,0.9924,0.9924,0.9924,1.0,0.9924,0.9773,1.0,0.9989,1.0,1.0,2.333,3.385,0.611,0.08062
-deepseek-flash-hibrida,deepseek/deepseek-v4.1-flash,hibrida,132,0,0.9924,0.9924,1.0,1.0,1.0,1.0,0.9924,0.9924,1.0,1.0,1.0,1.0,2.734,5.385,0.313,0.04101
-gpt6-luna-hibrida,openai/gpt-6-luna,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.808,3.691,0.106,0.01402
-sonnet-hibrida,anthropic/claude-sonnet-5.5,hibrida,132,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.201,3.98,11.972,1.58029
+haiku-hibrida,anthropic/claude-haiku-5.5,hibrida,139,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.45,4.419,0.611,0.08494
+haiku-hibrida-rep2,anthropic/claude-haiku-5.5,hibrida,139,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.276,3.52,0.611,0.08495
+haiku-determinista,anthropic/claude-haiku-5.5,determinista,139,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.403,4.279,0.611,0.08494
+haiku-solo-llm,anthropic/claude-haiku-5.5,llm,139,0,0.9784,0.9928,0.9928,0.9928,0.9928,1.0,0.9928,0.9784,1.0,0.999,1.0,1.0,2.179,3.651,0.611,0.08486
+deepseek-flash-hibrida,deepseek/deepseek-v4.1-flash,hibrida,139,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.6,5.915,0.361,0.0502
+gpt6-luna-hibrida,openai/gpt-6-luna,hibrida,139,0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.879,5.395,0.105,0.01466
+sonnet-hibrida,anthropic/claude-sonnet-5.5,hibrida,139,1,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,0.9928,2.249,4.1,11.898,1.65376

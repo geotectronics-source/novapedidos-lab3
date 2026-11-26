@@ -14,7 +14,6 @@ def test_valores_por_defecto_sin_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.openrouter_base_url == "https://openrouter.ai/api/v1"
     assert s.llm_temperatura == 0.0
     assert s.data_dir == Path("lab3")
-    assert s.datos_dir == Path("lab3") / "datos"
     assert s.openrouter_api_key is None
 
 
@@ -31,7 +30,7 @@ def test_variables_de_entorno_sobrescriben(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_datos_publicados_presentes() -> None:
-    datos = Settings(_env_file=None).datos_dir
+    datos = Settings(_env_file=None).data_dir / "datos"
     if not datos.exists():
         pytest.skip("Datos del GES no colocados en lab3/")
     esperados = {"productos", "sinonimos", "precios_escala", "clientes", "historial_pedidos"}

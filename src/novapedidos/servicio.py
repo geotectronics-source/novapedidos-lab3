@@ -24,12 +24,24 @@ from novapedidos.llm.extractor import Extractor, ResultadoExtraccion
 from novapedidos.llm.prompts import VERSION_PROMPT
 from novapedidos.observabilidad.trazas import etiquetar_traza, span
 from novapedidos.resolucion.combinar import Estrategia, resolver_mencion
+from novapedidos.resolucion.normalizacion import UNIDADES_NUM, Medida, normalizar, singular
 from novapedidos.resolucion.resolutor import Resolucion, Resolutor, TipoResolucion
 
 # "suelt" = "72 jaboncitos rosa sueltos": el cliente dice explícitamente que son unidades (caso propio PA11).
 _SUELTAS = re.compile(
-    r"\b(botell|latit|lata|bolsit|bolsa|unidad|paquet|suelt|sobres\b|sobrecit)", re.IGNORECASE
+    r"\b(botell|latit|lata|bolsit|bolsa|unidad|paquet|suelt|sobres\b|sobrecit|sobresit)", re.IGNORECASE
 )
+# "sobre" en singular es parte del nombre ("Shampoo Brisa sobre 10 ml"), salvo justo después de una
+# cantidad: "1 sobre de shampoo", "un solo sobre", "otro sobre", "1sobre" (auditoría Codex, N08: se cobraba
+# 1 display de 24 sobres). No cuenta como preposición ("kola 600 sobre lo de siempre") ni si el texto ya
+# dice la unidad de venta ("3 fardos ... sobre ..."): ver unidad_desde_texto.
+_NUMEROS = "|".join(sorted(UNIDADES_NUM, key=len, reverse=True))
+_SOBRE_CONTADO = re.compile(
+    rf"(?<![\w.,])(\d+|otr[oa]s?|{_NUMEROS})\s*(?:sol[oa]\s+|m[aá]s\s+)?sobre\b"
+    r"(?!\s+(lo|el|la|los|las|eso|esto|todo|mi|su|tu|ese|esa|este|esta)\b)",
+    re.IGNORECASE,
+)
+_UNIDAD_VENTA = re.compile(r"\b(fard|caj|display|quintal)", re.IGNORECASE)
 _DOCENAS = re.compile(r"\bdocenas?\b", re.IGNORECASE)
 # "un fardo y medio", "media caja": fracción de la unidad de venta. ("litro y medio" es una presentación.)
 _FRACCION_VENTA = re.compile(
@@ -39,7 +51,9 @@ _FRACCION_VENTA = re.compile(
 _CORRECCION = re.compile(r"\b(que sean|que sea|mejor|corrij\w*|corrig\w*)\b", re.IGNORECASE)
 
 
-MAX_CANTIDAD = 10_000  # por encima, la cantidad no es creíble: va a revisión en vez de calcularse
+# Tope técnico (evita desbordar Decimal con 1e30 -> 500), no de negocio: un pedido grande pero entero
+# se calcula y el límite de crédito lo manda a revisión (auditoría Codex, N15: 10 001 fardos).
+MAX_CANTIDAD = 1_000_000
 _CERO = re.compile(r"(?<![\d.,])0(?![\d.,])|\bcero\b", re.IGNORECASE)
 
 
@@ -73,7 +87,7 @@ def unidad_desde_texto(texto: str) -> Unidad:
     """
     if _DOCENAS.search(texto):
         return Unidad.DOCENA
-    if _SUELTAS.search(texto):
+    if _SUELTAS.search(texto) or (_SOBRE_CONTADO.search(texto) and not _UNIDAD_VENTA.search(texto)):
         return Unidad.SUELTA
     return Unidad.VENTA
 
@@ -183,9 +197,14 @@ class InterpreteDePedidos:
         self, ext: ResultadoExtraccion, base: frozenset[str] = frozenset()
     ) -> tuple[list[Operacion], list[Pendiente], list[tuple[str, Resolucion]]]:
         operaciones: list[Operacion] = []
-        pendientes: list[Pendiente] = []
+        pendientes: list[_PendienteDeMencion] = []
         resoluciones: list[tuple[str, Resolucion]] = []
         resueltos: set[str] = set()
+
+        def registrar(pendiente: Pendiente, producto: str) -> None:
+            if all(p.pendiente != pendiente for p in pendientes):
+                pendientes.append(_PendienteDeMencion(pendiente, _clave(producto)))
+
         for m in ext.extraccion.menciones:
             accion = Accion(m.accion)
             if accion is Accion.AGREGAR and _CORRECCION.search(m.texto):
@@ -207,19 +226,31 @@ class InterpreteDePedidos:
                 if len(en_contexto) == 1:
                     r = Resolucion(TipoResolucion.UNICO, tuple(en_contexto), "contexto")
             resoluciones.append((m.producto, r))
+            if accion is not Accion.AGREGAR:
+                # §2: vale la corrección y lo quitado se elimina. Eso incluye los pendientes que dejó la
+                # mención anterior de ese producto (auditoría Codex, N04–N07: "2 cajas de aceite... ya no
+                # quiero el aceite" quitaba la línea pero dejaba el pedido en revisión por el aceite ambiguo).
+                pendientes[:] = _sin_pendientes_rectificados(
+                    pendientes,
+                    skus=frozenset(r.skus),
+                    clave=_clave(m.producto) if r.tipo is TipoResolucion.NO_EXISTE else None,
+                    en_pedido=frozenset(resueltos | base),
+                    # Solo una corrección declarada por el modelo aclara un ambiguo por cruce parcial: la red
+                    # _CORRECCION ("que sea", "mejor") es muy laxa para borrar pendientes de otra mención.
+                    aclara=Accion(m.accion) is Accion.CORREGIR,
+                )
             if r.tipo is TipoResolucion.UNICO and accion is Accion.QUITAR:
                 operaciones.append(Operacion(sku=r.sku, texto=m.texto, accion=accion))
             elif r.tipo is TipoResolucion.UNICO:
                 resueltos.add(r.sku)
                 cantidad = cantidad_y_unidad(m.texto, m.cantidad)
                 if cantidad is None:  # "un fardo y medio": no se redondea -> revisión
-                    pendiente = Pendiente(
-                        motivo=Motivo.CANTIDAD_NO_CONVERTIBLE, texto=m.texto, opciones=[r.sku]
-                    )
                     if accion is Accion.CORREGIR:  # la corrección invalida lo pedido antes de ese producto
                         operaciones.append(Operacion(sku=r.sku, texto=m.texto, accion=Accion.QUITAR))
-                    if pendiente not in pendientes:
-                        pendientes.append(pendiente)
+                    registrar(
+                        Pendiente(motivo=Motivo.CANTIDAD_NO_CONVERTIBLE, texto=m.texto, opciones=[r.sku]),
+                        m.producto,
+                    )
                     continue
                 operaciones.append(
                     Operacion(
@@ -231,7 +262,61 @@ class InterpreteDePedidos:
                 # Si no existe, no hay nada que quitar.
                 operaciones += [Operacion(sku=s, texto=m.texto, accion=accion) for s in r.skus]
             else:
-                pendiente = r.a_pendiente(m.producto)
-                if pendiente not in pendientes:
-                    pendientes.append(pendiente)
-        return operaciones, pendientes, resoluciones
+                registrar(r.a_pendiente(m.producto), m.producto)
+        return operaciones, [p.pendiente for p in pendientes], resoluciones
+
+
+@dataclass(frozen=True)
+class _Clave:
+    """Palabras y medidas del producto mencionado: identifican un "no existe" (no tiene opciones)."""
+
+    palabras: frozenset[str]
+    medidas: frozenset[Medida]
+
+    def incluida_en(self, otra: _Clave) -> bool:
+        return bool(self.palabras) and self.palabras <= otra.palabras and self.medidas <= otra.medidas
+
+
+@dataclass(frozen=True)
+class _PendienteDeMencion:
+    pendiente: Pendiente
+    clave: _Clave
+
+
+def _clave(producto: str) -> _Clave:
+    norm = normalizar(producto)  # singular: "cervezas" = "cerveza"
+    return _Clave(frozenset(singular(w) for w in norm.palabras), frozenset(norm.medidas))
+
+
+def _sin_pendientes_rectificados(
+    pendientes: list[_PendienteDeMencion],
+    *,
+    skus: frozenset[str],
+    clave: _Clave | None,
+    en_pedido: frozenset[str],
+    aclara: bool,
+) -> list[_PendienteDeMencion]:
+    """Descarta los pendientes de menciones ANTERIORES a los que se refiere una corrección o exclusión.
+
+    Ante la duda el pendiente se conserva: borrarlo de más confirma un pedido sin un producto que el
+    cliente sí pidió, y eso es peor que una revisión de más.
+
+    - Pendiente con opciones (ambiguo, cantidad no convertible): se descarta si TODAS sus opciones están
+      entre los SKU rectificados ("aceite" ambiguo y luego "sin el aceite"). Con un cruce parcial solo se
+      descarta si es una corrección declarada que aclara cuál era ("una caja de aceite" + "mejor que sean 2
+      del girasol dorado") y ese SKU no tenía ya su línea. Una exclusión parcial ("una kola" + "pero no la
+      de 600") deja el pendiente: sigue sin saberse cuál de las otras quiere.
+    - "No existe" (sin opciones): se descarta si la rectificación nombra el mismo producto inexistente,
+      con sus palabras y medidas ("cerveza" y luego "cancele la cerveza"; "quite la kola de 2 litros" no
+      borra "kola norte light").
+    """
+
+    def rectificado(p: _PendienteDeMencion) -> bool:
+        opciones = set(p.pendiente.opciones)
+        if opciones:
+            if not opciones & skus:
+                return False
+            return opciones <= skus or (aclara and not (skus & en_pedido))
+        return clave is not None and clave.incluida_en(p.clave)
+
+    return [p for p in pendientes if not rectificado(p)]

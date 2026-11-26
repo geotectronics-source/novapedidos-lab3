@@ -16,12 +16,15 @@ decisión; el estado final está en el resumen.
 | D12 | **Defensa en capas** contra inyección de instrucciones | Confiar solo en el prompt | 7 casos de inyección + pruebas con el modelo real |
 | D14 | API: **validación antes del modelo**; 404/422/503 | 200 con pedido vacío si falla el LLM | 267 solicitudes adversariales; 5 defectos corregidos |
 | D16 | **Trazas MLflow tolerantes a fallas** (asíncronas, configuración en segundo plano) | Configuración por defecto | Por defecto se colgaba >150 s con MLflow caído |
-| D17 | **Evaluación con casos propios verificados y scorers por código** | Juez LLM | 48 casos propios; verificación independiente 48/48 |
-| D18 | **`claude-haiku-5.5`** + respaldo **`gpt-6-luna`** (otro proveedor) | Sonnet, deepseek, luna como principal | 7 configuraciones × 132 casos; fuera de muestra 47/48 |
-| D19 | **`docker compose up`** con API + MLflow; datos y clave fuera de la imagen | — | Clon limpio: 132/132 por HTTP con MLflow interrumpido |
+| D17 | **Evaluación con casos propios verificados y scorers por código** | Juez LLM | 55 casos propios (48 + 7 de regresión); verificación independiente 48/48 y 7/7 |
+| D18 | **`claude-haiku-5.5`** + respaldo **`gpt-6-luna`** (otro proveedor) | Sonnet, deepseek, luna como principal | 7 configuraciones × 139 casos; fuera de muestra 47/48 |
+| D19 | **`docker compose up`** con API + MLflow; datos y clave fuera de la imagen | — | Clon limpio: 132/132 por HTTP con MLflow interrumpido (139/139 tras D20) |
+| D20 | **Auditoría externa** (Codex, 20 mensajes inéditos): rectificaciones, "1 sobre", tope de cantidad, `/health` y trazas | Dejar los hallazgos documentados sin corregir | 5 defectos reales corregidos con pruebas y 7 casos de regresión; 1 falso positivo documentado |
 
-**Estado final:** 393 pruebas automatizadas que no usan el modelo (+4 con el modelo real); evaluación fuera de
-muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; ~US$0.61 por 1 000 pedidos.
+**Estado final:** 431 pruebas automatizadas que no usan el modelo (+4 con el modelo real); 139/139 en la
+evaluación (84 publicados + 55 propios) y por HTTP en Docker; fuera de muestra 97.9 % en el primer contacto con los
+casos propios (IC 95 % 89–99.6 %) y 13/19 en los mensajes inéditos de la auditoría externa (19/19 tras corregir,
+D20); servicio en Docker p50 1.3 s / p95 1.9 s; ~US$0.61 por 1 000 pedidos.
 
 ## D1. El LLM extrae; el código calcula
 
@@ -131,7 +134,7 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
 - **Evidencia (claude-haiku-5.5):** prompt v1 72/84 en los casos publicados; las 12 fallas eran dos patrones del
   LLM (marcar "5 energía max 473 ml" como latas sueltas; quitar el detalle distintivo). Con las validaciones y el
   prompt v2: 84/84. El prompt v3 (fracciones, "paquetes", correcciones sobre "lo de siempre") salió del ataque
-  del Inciso 6. Resultado final (D18): híbrida 100 %, determinista 100 %, solo LLM 97.7 % sobre 132 casos.
+  del Inciso 6. Resultado final (D18): híbrida 100 %, determinista 100 %, solo LLM 97.8 % sobre 139 casos.
 
 ## D11. Mensaje al cliente con plantilla, no con LLM
 
@@ -183,8 +186,11 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
   que podría confirmar pedidos equivocados.)
 - **Fecha estricta vs. flexible:** aceptar también segundos o zona horaria sería más permisivo, pero el contrato
   define un único formato y el docente prueba "fechas mal formadas": se prefirió la lectura literal.
-- **`/health`:** `ok` / `degradado` + `motivo`, con `dependencias` (datos, mlflow, llm). MLflow se consulta en
-  su `/health` con timeout de 2 s y caché de 5 s, para que `/health` responda rápido aunque MLflow esté caído.
+- **`/health`:** `ok` / `degradado` + `motivo`, con `dependencias` (datos, mlflow, trazas, llm). MLflow se
+  consulta en su `/health` con timeout de 2 s y caché de 2 s (antes 5 s: durante ese lapso podía repetirse un
+  `ok` obsoleto, D20), para que `/health` responda rápido aunque MLflow esté caído. `trazas` es `inicializando`
+  (→ degradado) mientras el hilo de configuración aún no activó las trazas, y `desactivadas` con
+  `TRAZAS_ACTIVAS=false`.
 - **Evidencia:** 357 pruebas sin modelo; ataque de agentes con 267 solicitudes (137 inválidas, 38 mensajes no
   publicados contra el servidor real, 92 de fallas de dependencias): 5 defectos reales corregidos con pruebas de
   regresión: "24 paquetes" (se cobraban como displays), corrección sobre "lo de siempre", "un quintal de arroz",
@@ -197,8 +203,22 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
   como red si el modelo redondea igual. "Litro y medio" se excluye (es presentación).
 - "media docena" = 6 unidades sueltas; el motor verifica si la división es exacta.
 - Una mención "agregar" cuyo texto dice "que sean", "mejor" o "corrijo" se trata como corrección (§2).
-- Cantidad 0 o negativa ("0 fardos") y cantidades absurdas (> 10 000 unidades) van a `cantidad_no_convertible`:
-  antes "0 fardos" se confirmaba como 1 fardo y 1e30 provocaba un 500 (auditoría final).
+- Cantidad 0 o negativa ("0 fardos") y cantidades absurdas (> 1 000 000 unidades) van a `cantidad_no_convertible`:
+  antes "0 fardos" se confirmaba como 1 fardo y 1e30 provocaba un 500 (auditoría final). El tope es técnico (evita
+  desbordar `Decimal`), no de negocio: un pedido enorme pero entero se calcula y el límite de crédito lo manda a
+  revisión (el tope inicial de 10 000 convertía 10 001 fardos en `cantidad_no_convertible`, D20).
+- **Rectificaciones (§2):** una corrección o exclusión reemplaza lo pedido antes de ese producto, **incluidos los
+  pendientes** que dejó esa mención ("2 cajas de aceite" ambiguo y luego "ya no quiero el aceite" → sin pendiente).
+  Regla de prudencia: **ante la duda, el pendiente se conserva** (borrarlo de más confirmaría un pedido sin un
+  producto que el cliente sí pidió). Un pendiente con opciones se descarta si **todas** están entre los SKU
+  rectificados. Con un cruce parcial solo se descarta si el modelo declaró una corrección que aclara cuál era
+  ("una caja de aceite" + "mejor que sean 2 del girasol dorado"), no por la red `_CORRECCION` ni por una exclusión
+  parcial ("una kola" + "pero no la de 600" → sigue sin saberse si es B02 o B03). Un "no existe" se descarta si
+  la rectificación nombra el mismo producto, palabras **y medidas** ("quite la kola de 2 litros" no borra "kola
+  norte light").
+- "sobre" en singular es parte del nombre ("Shampoo Brisa sobre 10 ml"), salvo justo después de una cantidad:
+  "1 sobre", "un solo sobre", "otro sobre" son unidades sueltas (P02 es un display de 24 sobres). No cuenta como
+  preposición ("kola 600 sobre lo de siempre") ni si el texto ya nombra la unidad de venta ("3 fardos").
 - **Alternativa descartada:** confiar en el redondeo/cantidad del modelo. El LLM tiende a "arreglar" la cantidad
   (1.5 → 1), y la política prohíbe redondear.
 
@@ -220,11 +240,15 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
 
 - **Decisiones:**
   1. Exportación asíncrona (`MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=true`), reintentos HTTP en 0, timeout 2 s.
-  2. La configuración (`set_experiment` + `autolog`) se hace en un **hilo de fondo** que reintenta cada 15 s:
-     la API arranca y responde aunque MLflow no exista todavía, y las trazas se activan solas cuando aparece.
+  2. La configuración (`set_experiment` + `autolog`) se hace en un **hilo de fondo** que reintenta cada 5 s
+     (antes 15 s, D20): la API arranca y responde aunque MLflow no exista todavía, y las trazas se activan solas
+     cuando aparece. Mientras tanto `/health` lo dice (`trazas: inicializando`).
   3. `span()` propio que no hace nada si la observabilidad no está activa y se traga cualquier error de MLflow:
      la observabilidad nunca tumba una solicitud.
   4. En las pruebas (intérprete inyectado) no hay trazas: nada se escribe en servidores reales.
+  5. Las solicitudes rechazadas (422) dejan una traza `solicitud_rechazada` con la ruta y los errores de
+     validación (no el cuerpo, que puede ser enorme o no ser JSON). Un 404 queda dentro de
+     `interpretar_pedido` con la excepción.
 - **Verificado de punta a punta:** API con MLflow arriba (trazas leídas de vuelta del servidor), MLflow detenido
   con la API en marcha (200 normales, `/health` degradado), MLflow de vuelta (`/health` ok y trazas nuevas
   guardadas) y API arrancada con MLflow caído (lista en ~9 s; trazas activadas al levantar MLflow).
@@ -235,7 +259,9 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
 
 ## D17. Evaluación: casos propios verificados y calificación por código
 
-- **Conjunto:** 84 casos publicados + **48 propios** (`evaluacion/casos_propios.jsonl`, mismo formato) que cubren
+- **Conjunto:** 84 casos publicados + **55 propios** (`evaluacion/casos_propios.jsonl`, mismo formato): 48 de la
+  entrega inicial más 7 de regresión (familia `auditoria`, PE01–PE07) con las situaciones que encontró la auditoría
+  externa (D20). Cubren
   lo que los publicados no: `cantidad_no_convertible` (0 casos publicados), inyección de instrucciones, crédito en
   el límite exacto, fechas límite, correcciones sobre "lo de siempre", variantes que no se venden.
 - **Respuestas esperadas confiables:** agentes escribieron mensaje + interpretación; el motor (verificado contra
@@ -254,28 +280,32 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
 
 ## D18. Elección del modelo (evidencia: `evidencia/comparacion/ANALISIS.md`)
 
-| Configuración | Exactos (132) | p50 / p95 | US$ / 1 000 pedidos |
-|---|---|---|---|
-| **claude-haiku-5.5 · híbrida** (×2 corridas) | **100 % / 100 %** | 2.5 s / 3.7 s | 0.61 |
-| claude-haiku-5.5 · determinista | 100 % | 2.0 s / 3.4 s | 0.61 |
-| claude-haiku-5.5 · solo LLM | 97.7 % | 2.3 s / 3.4 s | 0.61 |
-| deepseek-v4.1-flash · híbrida | 99.2 % | 2.7 s / 5.4 s | 0.31 |
-| gpt-6-luna · híbrida | 100 % | 1.8 s / 3.7 s | 0.11 |
-| claude-sonnet-5.5 · híbrida | 100 % | 2.2 s / 4.0 s | 12.00 |
+Comparación final (139 casos, re-ejecutada con el código posterior a la auditoría, D20):
 
-- **Principal: `anthropic/claude-haiku-5.5`.** 100 % en dos corridas, sin límite de solicitudes observado con 4 en
-  paralelo, p95 < 4 s, costo bajo.
+| Configuración | Exactos (139) | p50 / p95 | US$ / 1 000 pedidos |
+|---|---|---|---|
+| **claude-haiku-5.5 · híbrida** (×2 corridas) | **100 % / 100 %** | 2.5 s / 4.4 s (rep.: 2.3 / 3.5) | 0.61 |
+| claude-haiku-5.5 · determinista | 100 % | 2.4 s / 4.3 s | 0.61 |
+| claude-haiku-5.5 · solo LLM | 97.8 % | 2.2 s / 3.7 s | 0.61 |
+| deepseek-v4.1-flash · híbrida | 100 % | 2.6 s / 5.9 s | 0.36 |
+| gpt-6-luna · híbrida | 100 % | 1.9 s / 5.4 s | 0.11 |
+| claude-sonnet-5.5 · híbrida | 99.3 % (1 error del proveedor) | 2.2 s / 4.1 s | 11.90 |
+
+- **Principal: `anthropic/claude-haiku-5.5`.** 100 % en las dos corridas de cada comparación (entrega inicial y
+  final), sin límite de solicitudes observado con 4 en paralelo, p95 de 3.5–4.4 s en evaluación y 1.9 s en el
+  servicio, costo bajo.
 - **Respaldo: `openai/gpt-6-luna`** (otro proveedor). Igual de exacto, más rápido y 5.8× más barato, pero con
   límite de 20 solicitudes/min en cuentas nuevas: como principal, la carga de la evaluación lo haría responder 429.
   Con una cuenta establecida sería la opción óptima en costo.
-- **Descartados:** Sonnet (misma calidad a 20× el costo), deepseek (p95 de 5.4 s y una falla), estrategia "solo
-  LLM" (97.7 %: elige por el cliente en las ambigüedades).
+- **Descartados:** Sonnet (misma calidad a 20× el costo), deepseek (el p95 más alto, 5.4–5.9 s, y una falla en la
+  comparación inicial), estrategia "solo LLM" (97.7–97.8 %: elige por el cliente en las ambigüedades).
 - **Dentro vs. fuera de muestra:** el 100 % es exactitud **dentro de la muestra** (los casos publicados se usaron
   para ajustar el prompt y dos casos propios revelaron defectos que se corrigieron). La mejor estimación para
   mensajes nuevos es el **primer contacto con los 48 casos propios**, creados después de cerrar el prompt:
   **47/48 = 97.9 % (IC 95 % Wilson 89.1–99.6 %)**. Como todas las alternativas se midieron sobre los mismos casos,
   la comparación entre ellas es justa: la calidad no separa a haiku, luna y sonnet, por eso decidieron costo,
-  latencia y operación.
+  latencia y operación. La auditoría externa agregó otra medición fuera de muestra, con mensajes diseñados para
+  romper el sistema: 13/19 antes de corregir (D20). Ver `evidencia/comparacion/ANALISIS.md`.
 
 ## D19. Contenedores: `docker compose up` con API + MLflow
 
@@ -293,7 +323,7 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
 - **Hallazgos al probar en Docker (no aparecían en local):**
   - Con el contenedor de MLflow detenido, resolver el nombre `mlflow` tardaba ~7 s y el timeout de httpx no lo
     cubre: `/health` tardaba 7.1 s (y el healthcheck de 5 s habría marcado la API como no sana). Ahora la
-    verificación tiene un **plazo total** de 2.5 s (hilo + caché de 5 s).
+    verificación tiene un **plazo total** de 2.5 s (hilo + caché, entonces de 5 s y hoy de 2 s, D20).
   - El `curl.exe -d '...'` de PowerShell 5.1 parte el JSON en los espacios → el README usa `Invoke-RestMethod`.
   - Sin `charset` en `Content-Type`, PowerShell 5.1 mostraba "Â¡Buenas tardes!" → todas las respuestas declaran
     `application/json; charset=utf-8`.
@@ -303,3 +333,47 @@ muestra 97.9 % (IC 95 % 89–99.6 %); servicio en Docker p50 1.3 s / p95 1.8 s; 
   código correcto, MLflow detenido a mitad de la corrida sin ninguna falla, `/health` degradado y de vuelta a ok.
 - **Tamaño:** la imagen pesa ~1.5 GB, sobre todo por MLflow completo. Alternativa evaluada: `mlflow-skinny` en la
   API; se descartó por el riesgo de diferencias con el cliente usado en evaluación. Es una mejora futura.
+
+## D20. Auditoría externa de la entrega (Codex) y respuesta
+
+Una auditoría independiente (otro agente, Codex) revisó el tag `entrega-lab3` contra el enunciado: repitió la
+prueba HTTP y la evaluación en MLflow, y envió 20 mensajes **inéditos** (N01–N20) con situaciones límite. Cada
+hallazgo se verificó contra el código y los datos antes de corregir nada.
+
+| Hallazgo | Veredicto | Respuesta |
+|---|---|---|
+| Una rectificación ("ya no quiero el aceite", "cancele la cerveza", "corrija a 2 fardos") dejaba el pendiente de la mención anterior: revisión indebida (N04–N07) | **Real** | Las rectificaciones descartan los pendientes anteriores de ese producto, con la regla de prudencia de D15. Pruebas sin modelo + casos PE01–PE04, PE06 |
+| "1 sobre de shampoo" se cobraba como 1 display de 24 sobres (N08) | **Real** | "sobre" tras una cantidad ("1", "un solo", "otro") es unidad suelta (D15). Pruebas + PE05 |
+| 10 001 fardos → `cantidad_no_convertible` en vez de calcularse (N15) | **Real** | Tope técnico subido a 1 000 000; el crédito decide (D15). Prueba + PE07 |
+| `/health` podía decir `ok` durante la caída de MLflow; las primeras solicitudes y los 422 no dejaban traza | **Real** | Caché de 2 s, `trazas: inicializando`, reintento de 5 s, traza de rechazos (D14, D16); `probar_http.py` consulta `/health` hasta ver `degradado` y luego `ok`, y espera `ok` antes de medir |
+| El scorer de contrato no validaba enums, formatos ni tipos | **Real (sin impacto en la API)** | La API no puede producirlos (enums de Pydantic), pero el scorer ya no lo asume: 9 pruebas nuevas |
+| `pendientes[].texto` no es el fragmento literal del mensaje (15/40) | **Falso positivo en lo esencial** | Ver abajo |
+| Una mención fabricada por el extractor (con un doble de prueba) se aceptaba | **Límite conocido** | La corrida real de N18 fue correcta y las pruebas reales de inyección pasan. Anclar cada mención al texto sería una defensa más, con riesgo de descartar paráfrasis legítimas del modelo; queda como mejora futura |
+| Ruta absoluta con el usuario de Windows en un log; propiedad `datos_dir` sin uso | **Real (higiene)** | Log regenerado; propiedad eliminada |
+
+**Resultados después de corregir** (código final, ver `evidencia/comparacion/ANALISIS.md`):
+
+| Medición | Antes (tag `entrega-lab3`) | Después |
+|---|---|---|
+| Mensajes inéditos de la auditoría con expectativa no discutible, por HTTP | 13/19 | **19/19** (N17, discutible, sigue a revisión) |
+| Comparación de 7 configuraciones (haiku híbrida) | 132/132 | **139/139** en dos corridas |
+| Prueba HTTP en Docker con MLflow interrumpido | 132/132, `/health` sin detectar la caída en la única consulta | **139/139**, 8/8 inválidas, `degradado` a los 2.5 s y de vuelta a `ok` |
+| Pruebas sin modelo | 393 | **431** |
+
+**Texto de los pendientes.** El Anexo dice que `texto` es "el fragmento del mensaje", pero las respuestas esperadas
+**publicadas por el equipo docente** no lo usan literalmente: en `mensajes_dev.jsonl`, 9 de 19 pendientes no
+aparecen tal cual en el mensaje. Los 7 `agotado_sin_sustituto` traen el **nombre del catálogo** ("Galletas
+Dulcitas Chocolate"), D005 trae "papel higiénico" cuando el mensaje dice "higienico" y D045 trae "Q50" cuando dice
+"q50". El servicio sigue esa misma convención: nombre del catálogo en los agotados y el producto mencionado,
+normalizado, en ambiguos y no existentes. Por eso `pedido_exacto` compara motivo y opciones de los pendientes y no
+su texto, porque el propio conjunto de referencia no lo fija.
+
+**Revisión de las correcciones antes de re-evaluar.** Una revisión adversarial con agentes (6 lentes, cada hallazgo
+con un verificador que intentaba refutarlo, sin llamar al modelo) encontró que **la primera versión de la
+corrección de rectificaciones introducía 3 regresiones**: borraba pendientes que debían quedar ("una kola" + "pero
+no la de 600" se confirmaba sin kola; "quite la kola de 2 litros" borraba "kola norte light"; la red
+`_CORRECCION` borraba el ambiguo de otra mención). También encontró huecos en "sobre" ("un solo sobre", "otro
+sobre", "600 sobre lo de siempre"), una prueba que activaba trazas reales y 6 afirmaciones desactualizadas en los
+documentos. Todo se corrigió con pruebas de regresión antes de gastar en la evaluación. Los 7 casos PE fueron
+recalculados a mano desde los datos por un verificador que no vio la respuesta esperada: 7/7. La lección es que una
+corrección que borra información (pendientes) tiene que ser conservadora, porque el error caro es confirmar.

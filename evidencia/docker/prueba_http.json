@@ -1,13 +1,13 @@
 {
- "casos": 132,
- "http_200": 132,
- "pedidos_exactos": 132,
+ "casos": 139,
+ "http_200": 139,
+ "pedidos_exactos": 139,
  "fallas": [],
  "violaciones_de_contrato": {},
- "latencia_p50_s": 1.29,
- "latencia_p95_s": 1.77,
- "latencia_max_s": 2.09,
- "duracion_total_s": 43.9,
+ "latencia_p50_s": 1.3,
+ "latencia_p95_s": 1.87,
+ "latencia_max_s": 2.46,
+ "duracion_total_s": 45.9,
  "invalidas_ok": "8/8",
  "invalidas": [
   {
@@ -68,9 +68,10 @@
   }
  ],
  "eventos_mlflow": [
-  "MLflow detenido -> /health: degradado (MLflow no responde en http://mlflow:5000 (ConnectError))",
+  "/health en ok antes de empezar (0.0 s de espera)",
+  "MLflow detenido -> /health degradado a los 2.5 s (MLflow no responde en http://mlflow:5000 (sin respuesta en 2.5 s))",
   "MLflow levantado de nuevo",
-  "/health de vuelta en ok"
+  "/health de vuelta en ok a los 0.0 s"
  ],
  "health_final": {
   "estado": "ok",
@@ -78,6 +79,7 @@
   "dependencias": {
    "datos": "ok",
    "mlflow": "ok",
+   "trazas": "ok",
    "llm": "ok"
   },
   "version": "0.1.0",

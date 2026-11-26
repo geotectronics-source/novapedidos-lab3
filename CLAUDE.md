@@ -49,6 +49,8 @@ uv run ruff check . ; uv run ruff format .
 - Fecha efectiva = recepción (+1 día si hora ≥ 14:00); entrega = primer día de visita **estrictamente posterior**.
 - "Lo de siempre" = último pedido `entregado` (los cancelados no cuentan); se le aplican agotados/sustitutos.
 - Sustituto que ya existe en el pedido se suma a esa línea. Quitar un producto ocurre antes de evaluar agotados.
+- Una corrección o exclusión también descarta los pendientes de la mención anterior de ese producto
+  (`servicio._sin_pendientes_rectificados`, DECISIONES D15/D20). "sobre" tras una cantidad es unidad suelta.
 - Pendiente de agotado sin sustituto: `texto` = nombre del catálogo, `opciones` = [sku].
 - Unidades sueltas/docenas se acumulan por SKU y se convierten una sola vez (12 + 12 botellas = 1 fardo).
 - Interfaz del motor: `construir_pedido(catalogo, cliente_id, recibido, es_pedido=, pide_lo_de_siempre=,
@@ -81,6 +83,7 @@ uv run ruff check . ; uv run ruff format .
 
 ## Observabilidad (src/novapedidos/observabilidad/)
 
+- `/health` incluye `dependencias.trazas` (`ok` | `inicializando` | `desactivadas`); los 422 dejan traza `solicitud_rechazada`.
 - `trazas.py`: usar `with span(nombre, tipo, entradas) as s: ...; s.salidas(...)` y `etiquetar_traza()`; nunca
   llamar a mlflow directamente desde el dominio o el servicio (si MLflow falla, la solicitud debe seguir).
 - Las variables `MLFLOW_*` (async, reintentos 0, timeout 2 s) se fijan en `trazas.py` antes de importar mlflow.

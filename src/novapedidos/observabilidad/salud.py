@@ -24,7 +24,8 @@ class EstadoDependencia:
 
 
 class VerificadorMlflow:
-    def __init__(self, tracking_uri: str, timeout_s: float = 2.0, cache_s: float = 5.0) -> None:
+    # cache_s: antes 5 s; durante ese lapso /health podía repetir un "ok" ya obsoleto (auditoría Codex).
+    def __init__(self, tracking_uri: str, timeout_s: float = 2.0, cache_s: float = 2.0) -> None:
         self.tracking_uri = tracking_uri.rstrip("/")
         self.timeout_s = timeout_s
         self.cache_s = cache_s

@@ -1,0 +1,624 @@
+{
+ "descripcion": "Mensajes inéditos N01–N20 escritos por la auditoría externa (Codex) contra el tag entrega-lab3, re-enviados por HTTP a la versión corregida. Expectativas de la auditoría; comparación de campos de negocio (estado, líneas, total, fecha, motivos, pendientes por motivo+opciones, sustituciones y descuentos). Los casos ya no son fuera de muestra: las correcciones se hicieron a partir de ellos.",
+ "casos_con_expectativa_no_discutible": 19,
+ "coinciden_ahora": 19,
+ "coincidian_en_auditoria": 13,
+ "casos": [
+  {
+   "id": "N01",
+   "http": 200,
+   "latencia_s": 1.49,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 1,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 120.0
+     }
+    ],
+    "total": 120.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N02",
+   "http": 200,
+   "latencia_s": 1.23,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 10,
+      "precio_unitario": 120.0,
+      "descuento_pct": 3,
+      "subtotal": 1164.0
+     }
+    ],
+    "total": 1164.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N03",
+   "http": 200,
+   "latencia_s": 1.25,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B02",
+      "cantidad": 10,
+      "precio_unitario": 144.0,
+      "descuento_pct": 3,
+      "subtotal": 1396.8
+     }
+    ],
+    "total": 1396.8,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": [
+     {
+      "sku_solicitado": "B03",
+      "sku_entregado": "B02",
+      "cantidad": 2
+     }
+    ]
+   }
+  },
+  {
+   "id": "N04",
+   "http": 200,
+   "latencia_s": 1.41,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "estado",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 4,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 480.0
+     }
+    ],
+    "total": 480.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N05",
+   "http": 200,
+   "latencia_s": 1.37,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "estado",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 2,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 240.0
+     }
+    ],
+    "total": 240.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N06",
+   "http": 200,
+   "latencia_s": 1.43,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "estado",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B07",
+      "cantidad": 1,
+      "precio_unitario": 60.0,
+      "descuento_pct": 0,
+      "subtotal": 60.0
+     }
+    ],
+    "total": 60.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N07",
+   "http": 200,
+   "latencia_s": 1.38,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "estado",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 2,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 240.0
+     }
+    ],
+    "total": 240.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N08",
+   "http": 200,
+   "latencia_s": 1.14,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "estado",
+    "lineas",
+    "total",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [],
+    "total": 0.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "cantidad_no_convertible",
+      "texto": "Necesito 1 sobre de shampoo Brisa de 10 ml",
+      "opciones": [
+       "P02"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "cantidad_no_convertible"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N09",
+   "http": 200,
+   "latencia_s": 1.28,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B11",
+      "cantidad": 1,
+      "precio_unitario": 150.0,
+      "descuento_pct": 0,
+      "subtotal": 150.0
+     }
+    ],
+    "total": 150.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N10",
+   "http": 200,
+   "latencia_s": 1.28,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [
+     {
+      "sku": "B07",
+      "cantidad": 2,
+      "precio_unitario": 60.0,
+      "descuento_pct": 0,
+      "subtotal": 120.0
+     }
+    ],
+    "total": 120.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "producto_ambiguo",
+      "texto": "aceite 750 ml",
+      "opciones": [
+       "A06",
+       "A07"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "producto_ambiguo"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N11",
+   "http": 200,
+   "latencia_s": 1.21,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 60,
+      "precio_unitario": 120.0,
+      "descuento_pct": 5,
+      "subtotal": 6840.0
+     }
+    ],
+    "total": 6840.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "agotado_sin_sustituto",
+      "texto": "Café Altura Instantáneo 50 g",
+      "opciones": [
+       "A13"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "agotado_sin_sustituto",
+     "credito_excedido"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N12",
+   "http": 200,
+   "latencia_s": 1.1,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "A03",
+      "cantidad": 3,
+      "precio_unitario": 175.0,
+      "descuento_pct": 0,
+      "subtotal": 525.0
+     },
+     {
+      "sku": "A05",
+      "cantidad": 3,
+      "precio_unitario": 220.0,
+      "descuento_pct": 0,
+      "subtotal": 660.0
+     },
+     {
+      "sku": "A16",
+      "cantidad": 1,
+      "precio_unitario": 384.0,
+      "descuento_pct": 0,
+      "subtotal": 384.0
+     },
+     {
+      "sku": "B01",
+      "cantidad": 2,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 240.0
+     },
+     {
+      "sku": "B02",
+      "cantidad": 2,
+      "precio_unitario": 144.0,
+      "descuento_pct": 0,
+      "subtotal": 288.0
+     }
+    ],
+    "total": 2097.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N13",
+   "http": 200,
+   "latencia_s": 1.06,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B07",
+      "cantidad": 1,
+      "precio_unitario": 60.0,
+      "descuento_pct": 0,
+      "subtotal": 60.0
+     }
+    ],
+    "total": 60.0,
+    "fecha_entrega": "2026-11-30",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N14",
+   "http": 200,
+   "latencia_s": 0.81,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "fuera_de_alcance",
+    "lineas": [],
+    "total": 0.0,
+    "fecha_entrega": null,
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N15",
+   "http": 200,
+   "latencia_s": 1.04,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [
+    "lineas",
+    "total",
+    "motivos_revision",
+    "pendientes"
+   ],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 10001,
+      "precio_unitario": 120.0,
+      "descuento_pct": 5,
+      "subtotal": 1140114.0
+     }
+    ],
+    "total": 1140114.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [
+     "credito_excedido"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N16",
+   "http": 200,
+   "latencia_s": 1.2,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [
+     {
+      "sku": "S03",
+      "cantidad": 1,
+      "precio_unitario": 35.0,
+      "descuento_pct": 0,
+      "subtotal": 35.0
+     }
+    ],
+    "total": 35.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "cantidad_no_convertible",
+      "texto": "3 paquetes de galletas crac",
+      "opciones": [
+       "S03"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "cantidad_no_convertible"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N17",
+   "http": 200,
+   "latencia_s": 1.27,
+   "discutible": true,
+   "diferencias_ahora": [
+    "estado requiere_revision != confirmado",
+    "lineas [('A06', 2)] != [['A06', 3]]",
+    "total 456.0 != 684",
+    "motivos ['producto_ambiguo'] != []",
+    "pendientes [('producto_ambiguo', ('A06', 'A07'))] != []",
+    "sustituciones [] != [['A07', 'A06', 1]]"
+   ],
+   "diferencias_en_auditoria": [
+    "estado",
+    "lineas",
+    "total",
+    "motivos_revision",
+    "pendientes",
+    "sustituciones"
+   ],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [
+     {
+      "sku": "A06",
+      "cantidad": 2,
+      "precio_unitario": 228.0,
+      "descuento_pct": 0,
+      "subtotal": 456.0
+     }
+    ],
+    "total": 456.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "producto_ambiguo",
+      "texto": "aceite",
+      "opciones": [
+       "A06",
+       "A07"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "producto_ambiguo"
+    ],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N18",
+   "http": 200,
+   "latencia_s": 1.14,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B07",
+      "cantidad": 2,
+      "precio_unitario": 60.0,
+      "descuento_pct": 0,
+      "subtotal": 120.0
+     }
+    ],
+    "total": 120.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N19",
+   "http": 200,
+   "latencia_s": 1.16,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "confirmado",
+    "lineas": [
+     {
+      "sku": "B01",
+      "cantidad": 2,
+      "precio_unitario": 120.0,
+      "descuento_pct": 0,
+      "subtotal": 240.0
+     }
+    ],
+    "total": 240.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [],
+    "motivos_revision": [],
+    "sustituciones": []
+   }
+  },
+  {
+   "id": "N20",
+   "http": 200,
+   "latencia_s": 1.28,
+   "discutible": false,
+   "diferencias_ahora": [],
+   "diferencias_en_auditoria": [],
+   "respuesta": {
+    "estado": "requiere_revision",
+    "lineas": [],
+    "total": 0.0,
+    "fecha_entrega": "2026-11-26",
+    "pendientes": [
+     {
+      "motivo": "cantidad_no_convertible",
+      "texto": "fardo y medio de kola de litro y medio",
+      "opciones": [
+       "B02"
+      ]
+     }
+    ],
+    "motivos_revision": [
+     "cantidad_no_convertible"
+    ],
+    "sustituciones": []
+   }
+  }
+ ]
+}

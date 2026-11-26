@@ -35,7 +35,8 @@ from novapedidos.dominio.catalogo import Catalogo, ClienteNoEncontrado
 from novapedidos.dominio.modelos import RespuestaPedido
 from novapedidos.llm.extractor import ErrorExtraccion, ExtractorLLM
 from novapedidos.observabilidad.salud import EstadoDependencia, VerificadorMlflow
-from novapedidos.observabilidad.trazas import Observabilidad
+from novapedidos.observabilidad.trazas import Observabilidad, span
+from novapedidos.observabilidad.trazas import activo as trazas_activas
 from novapedidos.servicio import InterpreteDePedidos
 
 log = logging.getLogger("novapedidos.api")
@@ -53,6 +54,17 @@ class JSONResponse(_JSONResponseBase):
     ISO-8859-1 y "¡Buenas tardes!" llega como "Â¡Buenas tardes!" (detectado probando el README)."""
 
     media_type = "application/json; charset=utf-8"
+
+
+def _trazar_rechazo(request: Request, codigo: int, cuerpo: RespuestaError) -> None:
+    """Las solicitudes rechazadas también dejan traza (auditoría Codex: un 422 no aparecía en MLflow).
+
+    Solo se registran la ruta y los errores de validación, no el cuerpo recibido: puede ser enorme o
+    no ser JSON. Si las trazas no están activas, `span` no hace nada.
+    """
+    entradas = {"metodo": request.method, "ruta": request.url.path}
+    with span("solicitud_rechazada", "CHAIN", entradas) as s:
+        s.salidas({"status": codigo, **cuerpo.model_dump()})
 
 
 def _crear_interprete(settings: Settings) -> InterpreteDePedidos:
@@ -109,6 +121,7 @@ def crear_app(
         errores = [traducir_error(e) for e in exc.errors()]
         resumen = "; ".join(f"{e.campo}: {e.mensaje}" for e in errores)
         cuerpo = RespuestaError(detail=f"Solicitud inválida. {resumen}", errores=errores)
+        _trazar_rechazo(request, 422, cuerpo)
         return JSONResponse(status_code=422, content=cuerpo.model_dump())
 
     @app.exception_handler(StarletteHTTPException)
@@ -120,6 +133,7 @@ def crear_app(
                 detail="Solicitud inválida. cuerpo: debe ser un objeto JSON codificado en UTF-8",
                 errores=[ErrorCampo(campo="cuerpo", mensaje="debe ser un objeto JSON codificado en UTF-8")],
             )
+            _trazar_rechazo(request, 422, cuerpo)
             return JSONResponse(status_code=422, content=cuerpo.model_dump())
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
 
@@ -182,6 +196,16 @@ def crear_app(
         dependencias["mlflow"] = "ok" if mlflow.disponible else "no_disponible"
         if not mlflow.disponible:
             motivos.append(mlflow.detalle)
+
+        # Auditoría Codex: MLflow podía responder mientras el hilo de configuración aún no activaba las
+        # trazas (las primeras solicitudes quedaban sin traza y /health decía "ok").
+        if estado.observabilidad is None:
+            dependencias["trazas"] = "desactivadas"  # TRAZAS_ACTIVAS=false (o pruebas): decisión explícita
+        elif trazas_activas():
+            dependencias["trazas"] = "ok"
+        else:
+            dependencias["trazas"] = "inicializando"
+            motivos.append("Las trazas en MLflow aún no están activas (se reintenta en segundo plano)")
 
         ultimo = estado.ultimo_error_llm
         if ultimo and time.monotonic() - ultimo[0] < VENTANA_ERROR_LLM_S:

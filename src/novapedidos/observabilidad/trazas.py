@@ -3,7 +3,7 @@
 Mediciones que motivan el diseño (Inciso 7, ver DECISIONES.md):
 - Con la configuración por defecto, `mlflow.set_experiment` contra un MLflow caído no terminó en 150 s
   (7 reintentos con espera exponencial). -> reintentos HTTP en 0, timeout de 2 s, y la configuración se
-  hace en un HILO de fondo que reintenta cada 15 s hasta que MLflow responda.
+  hace en un HILO de fondo que reintenta cada 5 s hasta que MLflow responda.
 - Con exportación asíncrona, trazar agrega ~1 ms por solicitud; si MLflow cae a mitad de la operación las
   solicitudes no se bloquean (las trazas de ese periodo se pierden con una advertencia en el log) y al
   volver MLflow la exportación se reanuda sola.
@@ -36,7 +36,7 @@ os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 import mlflow  # noqa: E402
 
 log = logging.getLogger("novapedidos.observabilidad")
-REINTENTO_CONFIGURACION_S = 15.0
+REINTENTO_CONFIGURACION_S = 5.0  # antes 15 s: las solicitudes de ese intervalo quedaban sin traza
 
 _activo = False
 _experimento_id: str | None = None
@@ -69,6 +69,8 @@ class Observabilidad:
         while not self._detener.is_set():
             try:
                 exp = mlflow.set_experiment(self.experimento)
+                if self._detener.is_set():  # se detuvo mientras se configuraba: no activar trazas
+                    return
                 mlflow.langchain.autolog(log_traces=True, silent=True)
                 with _lock:
                     _experimento_id, _activo = exp.experiment_id, True

@@ -1570,5 +1570,186 @@
   },
   "nota": "La fecha está fuera del rango general 2026-11-23..2026-12-20. Se usó a propósito porque la familia pide explícitamente el caso 2026-12-31 después de las 14:00. Motor: confirmado, total 120.00, entrega 2027-01-02.",
   "familia": "catalogo"
+ },
+ {
+  "id": "PE01",
+  "tipo": "correccion",
+  "descripcion": "El cliente pide aceite sin marca (ambiguo) y en el segundo mensaje lo quita: el pendiente del aceite desaparece con la exclusión (politicas.md §2) y el pedido queda confirmado solo con la kola.",
+  "cliente_id": "C024",
+  "fecha_hora": "2026-12-03T10:00",
+  "mensajes": [
+   "buenas, mándeme 3 fardos de kola 600 y 2 cajas de aceite",
+   "ah no, el aceite ya no, solo las kolas"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "B01",
+     "accion": "agregar",
+     "cantidad": 3,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE02",
+  "tipo": "correccion",
+  "descripcion": "Producto inexistente (cerveza) que el cliente cancela después: no queda producto_no_existe; confirmado con el agua.",
+  "cliente_id": "C007",
+  "fecha_hora": "2026-12-07T09:30",
+  "mensajes": [
+   "le encargo 2 cajas de cerveza y 4 fardos de agua pura 600",
+   "mejor cancele la cerveza, solo el agua porfa"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "B07",
+     "accion": "agregar",
+     "cantidad": 4,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE03",
+  "tipo": "correccion",
+  "descripcion": "Fracción de la unidad de venta (fardo y medio) corregida a una cantidad entera: vale la corrección y no queda cantidad_no_convertible.",
+  "cliente_id": "C001",
+  "fecha_hora": "2026-11-24T11:00",
+  "mensajes": [
+   "anote fardo y medio de naranjita 600",
+   "no, mejor que sean 2 fardos de naranjita 600"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "B04",
+     "accion": "agregar",
+     "cantidad": 2,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE04",
+  "tipo": "correccion",
+  "descripcion": "Fracción no convertible en un producto que luego se quita: desaparece la línea y su pendiente; confirmado solo con la sopa.",
+  "cliente_id": "C027",
+  "fecha_hora": "2026-11-30T08:00",
+  "mensajes": [
+   "mándeme un fardo y medio de agua pura 600 y 3 cajas de sopa rapida pollo",
+   "quite el agua, solo la sopa"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "A15",
+     "accion": "agregar",
+     "cantidad": 3,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE05",
+  "tipo": "cantidad",
+  "descripcion": "'un sobre de shampoo' es una unidad suelta (P02 es un display de 24 sobres): 1 sobre no es un número entero de displays, va a revisión en vez de cobrarse un display. 'sobre' sin cantidad delante sigue siendo parte del nombre (D001).",
+  "cliente_id": "C001",
+  "fecha_hora": "2026-11-25T10:00",
+  "mensajes": [
+   "buenos días, me manda 2 fardos de kola 600 y un sobre de shampoo brisa"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "B01",
+     "accion": "agregar",
+     "cantidad": 2,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": [
+    {
+     "motivo": "cantidad_no_convertible",
+     "texto": "un sobre de shampoo brisa",
+     "opciones": [
+      "P02"
+     ]
+    }
+   ]
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE06",
+  "tipo": "correccion",
+  "descripcion": "Aceite ambiguo que el cliente aclara con una corrección ('mejor que sean 2 del girasol dorado'): la corrección resuelve la ambigüedad, A06 x2 confirmado.",
+  "cliente_id": "C024",
+  "fecha_hora": "2026-12-01T09:15",
+  "mensajes": [
+   "porfa una caja de aceite",
+   "mejor que sean 2 del girasol dorado"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "A06",
+     "accion": "agregar",
+     "cantidad": 2,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
+ },
+ {
+  "id": "PE07",
+  "tipo": "credito",
+  "descripcion": "Pedido enorme pero entero (12 000 fardos): se calcula con el descuento por escala y el límite de crédito lo manda a revisión (antes un tope de 10 000 lo convertía en cantidad_no_convertible).",
+  "cliente_id": "C001",
+  "fecha_hora": "2026-11-23T09:00",
+  "mensajes": [
+   "para la feria déjeme 12000 fardos de kola 600"
+  ],
+  "interpretacion": {
+   "es_pedido": true,
+   "pide_lo_de_siempre": false,
+   "operaciones": [
+    {
+     "sku": "B01",
+     "accion": "agregar",
+     "cantidad": 12000,
+     "unidad": "venta"
+    }
+   ],
+   "pendientes": []
+  },
+  "familia": "auditoria"
  }
 ]

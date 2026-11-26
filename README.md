@@ -94,10 +94,11 @@ servicio, cambie el puerto de MLflow en `.env`: `MLFLOW_PUERTO_HOST=5001` (y, pa
 |---|---|
 | 200 | Pedido interpretado (contrato del Anexo) |
 | 404 | El cliente no existe |
-| 422 | Solicitud inválida (campos faltantes, lista vacía, fecha que no es `AAAA-MM-DDTHH:MM`…); `detail` explica el motivo |
+| 422 | Solicitud inválida (campos faltantes, lista vacía, fecha que no es `AAAA-MM-DDTHH:MM`…); `detail` explica el motivo. Límites de la API: hasta 20 mensajes, 2 000 caracteres por mensaje y 6 000 en total; año entre 2000 y 2100 |
 | 503 | El modelo de lenguaje no está disponible tras reintentos y modelo de respaldo (reintentar) |
 
-`GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {"datos", "mlflow", "llm"}}`
+`GET /health` → `{"estado": "ok" | "degradado", "motivo": ..., "dependencias": {"datos", "mlflow", "trazas", "llm"}}`
+(`trazas: inicializando` mientras la conexión con MLflow aún no está lista: unos segundos tras arrancar)
 
 ## Evaluación reproducible
 
@@ -106,10 +107,10 @@ Con el producto levantado (`docker compose up`) y `uv` instalado:
 ```powershell
 uv sync
 
-# Prueba de punta a punta POR HTTP contra el contenedor: 132 casos, solicitudes inválidas y caída de MLflow
+# Prueba de punta a punta POR HTTP contra el contenedor: 139 casos, solicitudes inválidas y caída de MLflow
 uv run python evaluacion/probar_http.py --interrumpir-mlflow
 
-# Evaluación en MLflow de una configuración (84 casos publicados + 48 propios)
+# Evaluación en MLflow de una configuración (84 casos publicados + 55 propios)
 uv run python -m novapedidos.evaluacion.ejecutar --modelo anthropic/claude-haiku-5.5 --conjunto todos
 
 # Comparación completa de alternativas (7 configuraciones, ~US$2, ~35–40 min por los límites de solicitudes)
@@ -122,13 +123,15 @@ o `comparar`. Los resultados de la entrega (ejecutados en desarrollo) están ver
 [evidencia/comparacion/ANALISIS.md](evidencia/comparacion/ANALISIS.md) (análisis y elección del modelo),
 capturas de MLflow en [evidencia/mlflow/](evidencia/mlflow/) y la prueba en Docker en
 [evidencia/docker/prueba_http.json](evidencia/docker/prueba_http.json).
+Auditoría externa (mensajes inéditos, antes y después de corregir):
+[evidencia/auditoria/ineditos_N01_N20.json](evidencia/auditoria/ineditos_N01_N20.json) y DECISIONES D20.
 Casos propios: [evaluacion/casos_propios.jsonl](evaluacion/casos_propios.jsonl) (mismo formato que `mensajes_dev.jsonl`).
 
 ## Desarrollo local (sin Docker)
 
 ```powershell
 uv sync
-uv run pytest                 # pruebas sin modelo (~390, ~15 s)
+uv run pytest                 # pruebas sin modelo (~420, ~15 s)
 uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
 docker compose up -d mlflow   # opcional: MLflow para las trazas (o TRAZAS_ACTIVAS=false en .env)
 uv run uvicorn novapedidos.api.app:app --port 8000

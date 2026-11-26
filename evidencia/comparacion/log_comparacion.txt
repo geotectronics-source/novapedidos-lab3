@@ -1,95 +1,94 @@
 
 === haiku-hibrida (anthropic/claude-haiku-5.5, hibrida) ===
-2026/11/25 14:16:27 INFO mlflow.models.evaluation.utils.trace: Auto tracing is temporarily enabled during the model evaluation for computing some metrics and debugging. To disable tracing, call `mlflow.autolog(disable=True)`.
-2026/11/25 14:16:27 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:16:29 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 20:40:57 INFO mlflow.models.evaluation.utils.trace: Auto tracing is temporarily enabled during the model evaluation for computing some metrics and debugging. To disable tracing, call `mlflow.autolog(disable=True)`.
+2026/11/25 20:40:57 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:40:59 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: haiku-hibrida
-  Run ID: 3e2bf3536b06481c9e510c15897a296a
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=3e2bf3536b06481c9e510c15897a296a
+  Run name: [94mhaiku-hibrida[0m
+  Run ID: [94me3d770cc959e4832b99f78afadecf4fe[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=e3d770cc959e4832b99f78afadecf4fe[0m
 
-{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.505, "latencia_p95_s": 3.732, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08064}
+{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 139, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "total_correcto": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "sustituciones_correctas": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.45, "latencia_p95_s": 4.419, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08494}
 
 === haiku-hibrida-rep2 (anthropic/claude-haiku-5.5, hibrida) ===
-2026/11/25 14:20:16 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:20:18 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 20:44:47 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:44:49 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: haiku-hibrida-rep2
-  Run ID: a5ab2d867ea043498fa8d4c12cfbea98
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=a5ab2d867ea043498fa8d4c12cfbea98
+  Run name: [94mhaiku-hibrida-rep2[0m
+  Run ID: [94m4e5499c7b7b947d388d899dfaedf7785[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=4e5499c7b7b947d388d899dfaedf7785[0m
 
-{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.43, "latencia_p95_s": 3.411, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08064}
+{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "hibrida", "n_casos": 139, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "total_correcto": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "sustituciones_correctas": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.276, "latencia_p95_s": 3.52, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08495}
 
 === haiku-determinista (anthropic/claude-haiku-5.5, determinista) ===
-2026/11/25 14:21:57 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:21:59 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 20:46:50 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:46:52 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: haiku-determinista
-  Run ID: 4fcb17e657344694b76b37fc9bd609c7
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=4fcb17e657344694b76b37fc9bd609c7
+  Run name: [94mhaiku-determinista[0m
+  Run ID: [94m8c0ee8a6c6b44ea7afe7994ca29864df[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=8c0ee8a6c6b44ea7afe7994ca29864df[0m
 
-{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "determinista", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 1.977, "latencia_p95_s": 3.38, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08065}
+{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "determinista", "n_casos": 139, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "total_correcto": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "sustituciones_correctas": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.403, "latencia_p95_s": 4.279, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08494}
 
 === haiku-solo-llm (anthropic/claude-haiku-5.5, llm) ===
-2026/11/25 14:24:51 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:24:53 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 20:50:38 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:50:39 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: haiku-solo-llm
-  Run ID: d5169fce1a9949ffb32b028e7eb080d1
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=d5169fce1a9949ffb32b028e7eb080d1
+  Run name: [94mhaiku-solo-llm[0m
+  Run ID: [94m9ffb973a10534445a2e7a2fbba0ed952[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=9ffb973a10534445a2e7a2fbba0ed952[0m
 
-{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "llm", "n_casos": 132, "errores": 0, "pedido_exacto": 0.9773, "estado_correcto": 0.9924, "lineas_correctas": 0.9924, "montos_correctos": 0.9924, "fecha_correcta": 1.0, "motivos_correctos": 0.9924, "pendientes_correctos": 0.9773, "lineas_f1": 0.9989, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.333, "latencia_p95_s": 3.385, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08062}
+{"modelo": "anthropic/claude-haiku-5.5", "estrategia": "llm", "n_casos": 139, "errores": 0, "pedido_exacto": 0.9784, "estado_correcto": 0.9928, "lineas_correctas": 0.9928, "montos_correctos": 0.9928, "total_correcto": 0.9928, "fecha_correcta": 1.0, "motivos_correctos": 0.9928, "pendientes_correctos": 0.9784, "sustituciones_correctas": 1.0, "lineas_f1": 0.999, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.179, "latencia_p95_s": 3.651, "costo_por_1000_pedidos_usd": 0.611, "costo_total_usd": 0.08486}
 
 === deepseek-flash-hibrida (deepseek/deepseek-v4.1-flash, hibrida) ===
-2026/11/25 14:26:34 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:26:37 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
-2026/11/25 14:33:00 WARNING mlflow.genai.evaluation.harness: Failed to log trace and assessments to MLflow: API request to http://127.0.0.1:5001/api/3.0/mlflow/traces/tr-011bd55aaa249f1561685faa966aa13c/assessments failed with timeout exception HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=120). To increase the timeout, set the environment variable MLFLOW_HTTP_REQUEST_TIMEOUT (default: 120) to a larger value.
+2026/11/25 20:54:04 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:54:08 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: deepseek-flash-hibrida
-  Run ID: 096ca39ac2014f0aa5e70d93d0391abb
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=096ca39ac2014f0aa5e70d93d0391abb
+  Run name: [94mdeepseek-flash-hibrida[0m
+  Run ID: [94mb867c082a1c04b539c3f3c98dfc5e7ba[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=b867c082a1c04b539c3f3c98dfc5e7ba[0m
 
-{"modelo": "deepseek/deepseek-v4.1-flash", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 0.9924, "estado_correcto": 0.9924, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 0.9924, "pendientes_correctos": 0.9924, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.734, "latencia_p95_s": 5.385, "costo_por_1000_pedidos_usd": 0.313, "costo_total_usd": 0.04101}
+{"modelo": "deepseek/deepseek-v4.1-flash", "estrategia": "hibrida", "n_casos": 139, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "total_correcto": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "sustituciones_correctas": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.6, "latencia_p95_s": 5.915, "costo_por_1000_pedidos_usd": 0.361, "costo_total_usd": 0.0502}
 
 === gpt6-luna-hibrida (openai/gpt-6-luna, hibrida) ===
-2026/11/25 14:33:06 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:33:08 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 20:56:15 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 20:56:16 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: gpt6-luna-hibrida
-  Run ID: 03b2f6949c8540b2b96840a98e9a5b55
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=03b2f6949c8540b2b96840a98e9a5b55
+  Run name: [94mgpt6-luna-hibrida[0m
+  Run ID: [94m769461b474b3435594f4db9bd3064cae[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=769461b474b3435594f4db9bd3064cae[0m
 
-{"modelo": "openai/gpt-6-luna", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 1.808, "latencia_p95_s": 3.691, "costo_por_1000_pedidos_usd": 0.106, "costo_total_usd": 0.01402}
+{"modelo": "openai/gpt-6-luna", "estrategia": "hibrida", "n_casos": 139, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "total_correcto": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "sustituciones_correctas": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 1.879, "latencia_p95_s": 5.395, "costo_por_1000_pedidos_usd": 0.105, "costo_total_usd": 0.01466}
 
 === sonnet-hibrida (anthropic/claude-sonnet-5.5, hibrida) ===
-2026/11/25 14:42:41 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
-2026/11/25 14:42:45 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
+2026/11/25 21:05:15 INFO mlflow.genai.utils.data_validation: Testing model prediction with the first sample in the dataset. To disable this check, set the MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION environment variable to True.
+2026/11/25 21:05:19 WARNING mlflow.tracing.fluent: No active trace found. Please create a span using `mlflow.start_span` or `@mlflow.trace` before calling `mlflow.update_current_trace`.
 
 ✨ Evaluation completed.
 
 Metrics and evaluation results are logged to the MLflow run:
-  Run name: sonnet-hibrida
-  Run ID: 486b52a26cc44c888311590015c9542e
-View the evaluation results at http://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=486b52a26cc44c888311590015c9542e
+  Run name: [94msonnet-hibrida[0m
+  Run ID: [94mc501740edf1140fd96971165cd07f1aa[0m
+View the evaluation results at [93mhttp://127.0.0.1:5001/#/experiments/3/evaluation-runs?selectedRunUuid=c501740edf1140fd96971165cd07f1aa[0m
 
-{"modelo": "anthropic/claude-sonnet-5.5", "estrategia": "hibrida", "n_casos": 132, "errores": 0, "pedido_exacto": 1.0, "estado_correcto": 1.0, "lineas_correctas": 1.0, "montos_correctos": 1.0, "fecha_correcta": 1.0, "motivos_correctos": 1.0, "pendientes_correctos": 1.0, "lineas_f1": 1.0, "contrato_valido": 1.0, "mensaje_coherente": 1.0, "latencia_p50_s": 2.201, "latencia_p95_s": 3.98, "costo_por_1000_pedidos_usd": 11.972, "costo_total_usd": 1.58029}
+{"modelo": "anthropic/claude-sonnet-5.5", "estrategia": "hibrida", "n_casos": 139, "errores": 1, "pedido_exacto": 0.9928, "estado_correcto": 0.9928, "lineas_correctas": 0.9928, "montos_correctos": 0.9928, "total_correcto": 0.9928, "fecha_correcta": 0.9928, "motivos_correctos": 0.9928, "pendientes_correctos": 0.9928, "sustituciones_correctas": 0.9928, "lineas_f1": 0.9928, "contrato_valido": 0.9928, "mensaje_coherente": 0.9928, "latencia_p50_s": 2.249, "latencia_p95_s": 4.1, "costo_por_1000_pedidos_usd": 11.898, "costo_total_usd": 1.65376}
 
-Resultados en C:\Users\geova\Documents\Product Development\Laboratorio 3\evidencia\comparacion
+Resultados en evidencia\comparacion

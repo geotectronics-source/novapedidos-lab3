@@ -201,7 +201,7 @@ def test_health_ok(api):
     r = api.get("/health")
     assert r.status_code == 200
     assert r.json()["estado"] == "ok" and r.json()["motivo"] is None
-    assert r.json()["dependencias"] == {"datos": "ok", "mlflow": "ok", "llm": "ok"}
+    assert r.json()["dependencias"] == {"datos": "ok", "mlflow": "ok", "trazas": "desactivadas", "llm": "ok"}
 
 
 def test_mlflow_caido_health_degradado_y_la_api_sigue_respondiendo(catalogo_real):
@@ -214,7 +214,8 @@ def test_mlflow_caido_health_degradado_y_la_api_sigue_respondiendo(catalogo_real
 
 def test_sin_datos_el_servicio_vive_y_lo_reporta(tmp_path):
     settings = Settings(_env_file=None, data_dir=tmp_path, openrouter_api_key="x")
-    app = crear_app(settings, verificador_mlflow=lambda: EstadoDependencia(True, "ok"))
+    # trazas=False: sin intérprete inyectado se activaría un hilo real contra MLflow (revisión Inciso 11)
+    app = crear_app(settings, verificador_mlflow=lambda: EstadoDependencia(True, "ok"), trazas=False)
     with TestClient(app) as c:
         salud = c.get("/health").json()
         assert salud["estado"] == "degradado" and salud["dependencias"]["datos"] == "error"
@@ -241,7 +242,8 @@ def test_health_tiene_plazo_total_aunque_la_consulta_se_cuelgue(monkeypatch):
     from novapedidos.observabilidad import salud
 
     def colgado(*args, **kwargs):
-        time.sleep(10)
+        time.sleep(10)  # luego falla como httpx (antes devolvía None y el hilo lanzaba excepción)
+        raise salud.httpx.ConnectTimeout("colgado")
 
     monkeypatch.setattr(salud.httpx, "get", colgado)
     verificar = salud.VerificadorMlflow("http://mlflow:5000", timeout_s=1, cache_s=5)
@@ -256,3 +258,49 @@ def test_health_tiene_plazo_total_aunque_la_consulta_se_cuelgue(monkeypatch):
 def test_documentacion_openapi_disponible(api):
     esquema = api.get("/openapi.json").json()
     assert "/v1/pedidos/interpretar" in esquema["paths"] and "/health" in esquema["paths"]
+
+
+# --- Auditoría Codex: trazas que aún no están activas y solicitudes rechazadas
+def test_health_degradado_mientras_las_trazas_no_estan_activas(catalogo_real, monkeypatch):
+    from novapedidos.observabilidad import trazas
+
+    monkeypatch.setattr(trazas.Observabilidad, "iniciar", lambda self: None)  # sin hilo ni servidor
+    interprete = InterpreteDePedidos(catalogo_real, ExtractorFijo(extraccion_por_mensaje))
+    app = crear_app(
+        Settings(_env_file=None),
+        interprete=interprete,
+        verificador_mlflow=lambda: EstadoDependencia(True, "ok"),
+        trazas=True,
+    )
+    with TestClient(app) as c:
+        monkeypatch.setattr(trazas, "_activo", False)
+        salud = c.get("/health").json()
+        assert salud["estado"] == "degradado" and salud["dependencias"]["trazas"] == "inicializando"
+        assert "trazas" in salud["motivo"]
+        monkeypatch.setattr(trazas, "_activo", True)
+        salud = c.get("/health").json()
+        assert salud["estado"] == "ok" and salud["dependencias"]["trazas"] == "ok"
+
+
+def test_solicitud_rechazada_deja_traza(api, monkeypatch):
+    from contextlib import contextmanager
+
+    from novapedidos.api import app as modulo_app
+
+    registradas = []
+
+    class _Span:
+        def salidas(self, valor):
+            registradas[-1]["salidas"] = valor
+
+    @contextmanager
+    def span_falso(nombre, tipo="UNKNOWN", entradas=None, **atributos):
+        registradas.append({"nombre": nombre, "entradas": entradas})
+        yield _Span()
+
+    monkeypatch.setattr(modulo_app, "span", span_falso)
+    r = api.post("/v1/pedidos/interpretar", json={"cliente_id": "C001", "mensajes": ["hola"]})
+    assert r.status_code == 422
+    assert registradas[0]["nombre"] == "solicitud_rechazada"
+    assert registradas[0]["entradas"]["ruta"] == "/v1/pedidos/interpretar"
+    assert registradas[0]["salidas"]["status"] == 422 and "fecha_hora" in registradas[0]["salidas"]["detail"]

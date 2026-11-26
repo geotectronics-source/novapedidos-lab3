@@ -7,6 +7,7 @@ ignora (es libre: "naranjitas" o "una caja de aceite" son igual de válidos); s�
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from typing import Any
 
@@ -17,6 +18,15 @@ CLAVES_CONTRATO = {
     "cliente_id", "estado", "lineas", "total", "fecha_entrega", "sustituciones",
     "pendientes", "motivos_revision", "mensaje_cliente",
 }  # fmt: skip
+
+
+ESTADOS_VALIDOS = {"confirmado", "requiere_revision", "fuera_de_alcance"}
+CLAVES_LINEA = {"sku", "cantidad", "precio_unitario", "descuento_pct", "subtotal"}
+_FECHA = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _es_numero(valor: Any) -> bool:
+    return isinstance(valor, int | float) and not isinstance(valor, bool)
 
 
 def _ok(obtenido: Any) -> bool:
@@ -131,6 +141,32 @@ def problemas_de_contrato(obtenido: dict) -> list[str]:
         lineas or obtenido.get("total") or obtenido.get("fecha_entrega") is not None
     ):
         problemas.append("fuera_de_alcance con líneas, total o fecha")
+    # Tipos y formatos del Anexo (auditoría Codex: antes "estado": "inventado" o "fecha_entrega": "martes"
+    # pasaban; la API no puede producirlos porque usa enums de Pydantic, pero el scorer no debe asumirlo).
+    if estado not in ESTADOS_VALIDOS:
+        problemas.append(f"estado inválido: {estado!r}")
+    fecha = obtenido.get("fecha_entrega")  # null en fuera_de_alcance (se revisa arriba)
+    if estado != "fuera_de_alcance" and not (isinstance(fecha, str) and _FECHA.fullmatch(fecha)):
+        problemas.append(f"fecha_entrega no es AAAA-MM-DD: {fecha!r}")
+    if not _es_numero(obtenido.get("total")):
+        problemas.append("total no numérico")
+    if not isinstance(obtenido.get("mensaje_cliente"), str):
+        problemas.append("mensaje_cliente no es texto")
+    for x in lineas:
+        if set(x) != CLAVES_LINEA or not isinstance(x.get("sku"), str):
+            problemas.append(f"línea con claves o tipos distintos al contrato: {x}")
+        elif not all(_es_numero(x[k]) for k in ("precio_unitario", "subtotal", "descuento_pct")):
+            problemas.append(f"línea con montos no numéricos: {x}")
+    for p in pendientes:
+        if set(p) != {"motivo", "texto", "opciones"} or not isinstance(p.get("texto"), str):
+            problemas.append(f"pendiente con claves o tipos distintos al contrato: {p}")
+        elif p["motivo"] not in MOTIVOS_VALIDOS or not isinstance(p["opciones"], list):
+            problemas.append(f"pendiente inválido: {p}")
+    for s in obtenido.get("sustituciones", []):
+        if set(s) != {"sku_solicitado", "sku_entregado", "cantidad"} or not isinstance(
+            s.get("cantidad"), int
+        ):
+            problemas.append(f"sustitución con claves o tipos distintos al contrato: {s}")
     if not motivos <= MOTIVOS_VALIDOS:
         problemas.append(f"motivos inválidos: {motivos - MOTIVOS_VALIDOS}")
     if any(p.get("motivo") == "credito_excedido" for p in pendientes):
@@ -139,7 +175,10 @@ def problemas_de_contrato(obtenido: dict) -> list[str]:
         problemas.append("motivos_revision no coincide con los motivos de los pendientes")
     if any(not isinstance(x.get("cantidad"), int) or x["cantidad"] < 1 for x in lineas):
         problemas.append("cantidad no entera positiva")
-    if abs(sum(float(x["subtotal"]) for x in lineas) - float(obtenido.get("total", 0))) > 0.005:
+    subtotales = [x.get("subtotal") for x in lineas]
+    total = obtenido.get("total", 0)
+    numericos = all(map(_es_numero, subtotales)) and _es_numero(total)  # si no, ya se reportó arriba
+    if numericos and abs(sum(subtotales) - total) > 0.005:
         problemas.append("total distinto a la suma de subtotales")
     return problemas
 

@@ -53,8 +53,27 @@ INVALIDAS = [
 PROYECTO: list[str] = []  # ["-p", "nombre"] si el stack se levantó con otro nombre de proyecto
 
 
-def _compose(*args: str) -> None:
-    subprocess.run(["docker", "compose", *PROYECTO, *args], cwd=RAIZ, check=False, capture_output=True)
+def _compose(*args: str) -> bool:
+    r = subprocess.run(["docker", "compose", *PROYECTO, *args], cwd=RAIZ, check=False, capture_output=True)
+    return r.returncode == 0
+
+
+def _esperar_salud(cliente: httpx.Client, estado: str, plazo_s: float) -> tuple[float | None, dict]:
+    """Consulta /health cada segundo hasta ver `estado` (o agotar el plazo): (segundos, última respuesta).
+
+    Una sola consulta no basta (auditoría Codex): el verificador guarda su resultado unos segundos en
+    caché y la resolución DNS del contenedor detenido puede tardar.
+    """
+    inicio, salud = time.perf_counter(), {}
+    while time.perf_counter() - inicio < plazo_s:
+        try:
+            salud = cliente.get("/health").json()
+        except Exception as e:  # la API no respondió: se registra y se sigue intentando
+            salud = {"estado": "sin_respuesta", "motivo": type(e).__name__}
+        if salud.get("estado") == estado:
+            return round(time.perf_counter() - inicio, 1), salud
+        time.sleep(1)
+    return None, salud
 
 
 def main() -> None:
@@ -70,16 +89,28 @@ def main() -> None:
     cliente = httpx.Client(base_url=a.url, timeout=60)
     casos = cargar(a.conjunto, get_settings().data_dir)
     eventos: list[str] = []
+    # Antes de medir: el servicio listo, trazas incluidas (si no, las primeras solicitudes quedan sin traza).
+    segundos, salud = _esperar_salud(cliente, "ok", plazo_s=60)
+    eventos.append(
+        f"/health en ok antes de empezar ({segundos} s de espera)"
+        if segundos is not None
+        else f"AVISO: se empezó con /health {salud.get('estado')} ({salud.get('motivo')})"
+    )
 
-    def interrumpir() -> None:  # a los ~10 s detiene MLflow 30 s, y lo vuelve a levantar
+    def interrumpir() -> None:  # a los ~10 s detiene MLflow ~30 s, y lo vuelve a levantar
         time.sleep(10)
-        _compose("stop", "mlflow")
-        time.sleep(3)
-        salud = cliente.get("/health").json()
-        eventos.append(f"MLflow detenido -> /health: {salud['estado']} ({salud.get('motivo')})")
-        time.sleep(27)
-        _compose("start", "mlflow")
-        eventos.append("MLflow levantado de nuevo")
+        if not _compose("stop", "mlflow"):
+            eventos.append("ERROR: docker compose stop mlflow falló; no hubo interrupción")
+            return
+        detenido = time.perf_counter()
+        segundos, salud = _esperar_salud(cliente, "degradado", plazo_s=20)
+        if segundos is None:
+            eventos.append(f"ERROR: /health no reportó degradado en 20 s (último: {salud.get('estado')})")
+        else:
+            eventos.append(f"MLflow detenido -> /health degradado a los {segundos} s ({salud.get('motivo')})")
+        time.sleep(max(0.0, 30 - (time.perf_counter() - detenido)))
+        ok = _compose("start", "mlflow")
+        eventos.append("MLflow levantado de nuevo" if ok else "ERROR: docker compose start mlflow falló")
 
     hilo_interrupcion = threading.Thread(target=interrumpir, daemon=True)
     if a.interrumpir_mlflow:
@@ -123,11 +154,12 @@ def main() -> None:
 
     if a.interrumpir_mlflow:  # espera a que MLflow vuelva y a que /health lo refleje
         hilo_interrupcion.join()
-        for _ in range(30):
-            if cliente.get("/health").json()["estado"] == "ok":
-                eventos.append("/health de vuelta en ok")
-                break
-            time.sleep(2)
+        segundos, salud = _esperar_salud(cliente, "ok", plazo_s=60)
+        eventos.append(
+            f"/health de vuelta en ok a los {segundos} s"
+            if segundos is not None
+            else f"ERROR: /health no volvió a ok en 60 s ({salud.get('motivo')})"
+        )
 
     lat = sorted(x["s"] for x in resultados if x["http"] == 200)
     resumen = {
