@@ -28,7 +28,8 @@ src/novapedidos/
   servicio.py      pipeline: cliente → LLM → resolución → motor → mensaje
 tests/             pytest; NO llaman al modelo (marcador `llm` para las que sí)
 evaluacion/        casos propios (.jsonl + fuente) y prueba de punta a punta por HTTP
-evidencia/         resultados de la comparación y capturas de MLflow
+evidencia/         resultados de la comparación, capturas de MLflow y de funcionamiento
+docs/              diagrama del pipeline (docs/diagrama_pipeline.py lo genera)
 eda/               exploración de datos (REPORTE_EDA.md: reglas verificadas)
 lab3/              datos del GES — NO se versiona (montado como volumen en Docker)
 ```

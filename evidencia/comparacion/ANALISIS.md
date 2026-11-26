@@ -61,7 +61,7 @@ en las dos corridas de este mismo código.
 
 ### Lectura de las fallas
 
-- **Solo LLM (97.7 %)**: el modelo responde "lo que probablemente quiso decir" en vez de "todo lo que podría
+- **Solo LLM (136/139 = 97.8 %)**: el modelo responde "lo que probablemente quiso decir" en vez de "todo lo que podría
   significar": "pasta" sin la pasta dental (D008, D014); y al revés, marcó "frijol negro" como ambiguo con
   el frijol rojo aunque el cliente dijo el color (PA10). Es la razón de
   la estrategia híbrida: **la ambigüedad la decide el código**.
@@ -133,10 +133,18 @@ la alternativa sería que las solicitudes esperaran a MLflow.
 | Captura | Qué muestra |
 |---|---|
 | `trazas_lista.jpg` | Trazas de solicitudes reales (experimento `novapedidos`): entrada, salida, duración, estado y tokens |
+| `trazas_lista_version_final.jpg` | Trazas de la versión final en el MLflow del `docker compose`: un pedido con rectificación (`confirmado`) y una traza `solicitud_rechazada` (422) arriba de las anteriores |
+| `traza_detalle_rectificacion.jpg` | Detalle de esa traza: entrada con 3 mensajes ("ah no, el aceite ya no"), salida `confirmado` B01×2 + B11×4 y el árbol de spans |
+| `traza_resolucion_rectificacion.jpg` | Span `resolucion` de esa traza: las menciones que extrajo el modelo, incluida la de `accion: quitar` del aceite |
 | `traza_detalle_ejemplo_anexo.jpg` | Árbol de spans del ejemplo del Anexo: `interpretar_pedido` → `extraccion` → `ChatOpenAI` (1.8 s, ~US$0.0006) → `resolucion` → `motor_reglas` |
 | `comparacion_post_auditoria.jpg` | `pedido_exacto` de los 7 runs de la comparación final (139 casos, filtro `tags.comparacion = 'post-auditoria-139'`) |
 | `comparacion_pedido_exacto.jpg` | Lo mismo para la comparación de la entrega inicial (132 casos; hoy `tags.comparacion = 'entrega-inicial-132'`) |
 | `evaluaciones_historial.jpg` | Historial de **todas** las evaluaciones del experimento `novapedidos-evaluacion`. Las caídas a 0 % y 28.8 % son intentos **descartados** de Sonnet (incompatibilidad de método y límite de 20 solicitudes/min) antes de corregirlos; se conservan como historial. Los resultados publicados son los runs con la etiqueta `comparacion_final` |
+
+Capturas de funcionamiento (`evidencia/funcionamiento/`): `swagger_pedido_rectificado.jpg` (la misma solicitud
+desde la documentación interactiva `/docs` del contenedor: 200 con el pedido completo y el mensaje al cliente) y
+`health_degradado_mlflow_detenido.png` (`GET /health` con el contenedor de MLflow detenido: `degradado` con el
+motivo; en ese momento un POST siguió respondiendo 200 y, al levantar MLflow, `/health` volvió a `ok` solo).
 
 Las evaluaciones se ejecutaron contra un MLflow local de desarrollo. El MLflow del `docker compose` arranca vacío:
 el experimento `novapedidos-evaluacion` aparece al correr `ejecutar` o `comparar` (ver README).
@@ -150,5 +158,8 @@ el experimento `novapedidos-evaluacion` aparece al correr `ejecutar` o `comparar
   falla o limita, responde OpenAI). No es el principal solo por su límite de 20 solicitudes/min en cuentas nuevas:
   con una cuenta establecida sería la opción óptima en costo (5.8× más barato) y latencia.
 - **Estrategia: híbrida.** Empata con la determinista en este conjunto, pero agrega el respaldo del LLM para jerga
-  que el vocabulario no cubre y detecta discrepancias LLM/código; la estrategia "solo LLM" es claramente peor.
+  que el vocabulario no cubre y detecta discrepancias LLM/código. La estrategia "solo LLM" falló 3 casos que la
+  híbrida acertó (y ninguno al revés). Con 139 casos esa diferencia sola no es estadísticamente significativa
+  (McNemar exacto, p = 0.25), pero se repitió en las dos comparaciones (129/132 y 136/139) y los 3 errores son
+  justo el tipo que la arquitectura quiere evitar: el modelo elige un producto cuando el mensaje es ambiguo.
 - **Sonnet descartado**: misma calidad a 20× el costo de haiku.

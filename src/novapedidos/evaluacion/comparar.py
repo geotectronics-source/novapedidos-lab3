@@ -60,26 +60,31 @@ def _por_tipo(detalle: Path) -> dict[str, tuple[int, int]]:
 
 
 def _grafico(filas: list[dict], destino: Path) -> None:
+    """Calidad vs. costo y vs. latencia. Cada configuración tiene el mismo color y marcador en ambos paneles y
+    se identifica en una leyenda común: con etiquetas junto a los puntos, las configuraciones que empatan
+    (las de haiku, todas al 100 % y al mismo costo) se superponían y no se leían."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, ejes = plt.subplots(1, 2, figsize=(13, 5))
-    for f in filas:
-        x, y = f["costo_por_1000_pedidos_usd"], 100 * f["pedido_exacto"]
-        ejes[0].scatter(x, y, s=80)
-        ejes[0].annotate(f["nombre"], (x, y), textcoords="offset points", xytext=(5, 5), fontsize=8)
-        ejes[1].scatter(f["latencia_p50_s"], y, s=80)
-        ejes[1].annotate(
-            f["nombre"], (f["latencia_p50_s"], y), textcoords="offset points", xytext=(5, 5), fontsize=8
-        )
+    marcadores = ["o", "s", "D", "^", "v", "P", "X", "*"]
+    fig, ejes = plt.subplots(1, 2, figsize=(13, 5.6))
+    for i, f in enumerate(filas):
+        estilo = {"s": 90, "color": plt.cm.tab10(i % 10), "marker": marcadores[i % len(marcadores)],
+                  "edgecolors": "white", "linewidths": 0.8, "alpha": 0.9, "zorder": 3}  # fmt: skip
+        y = 100 * f["pedido_exacto"]
+        ejes[0].scatter(f["costo_por_1000_pedidos_usd"], y, label=f["nombre"], **estilo)
+        ejes[1].scatter(f["latencia_p50_s"], y, **estilo)
     ejes[0].set(xscale="log", xlabel="Costo por 1 000 pedidos (USD, escala log)", ylabel="Pedidos exactos (%)",
                 title="Calidad vs. costo")  # fmt: skip
-    ejes[1].set(xlabel="Latencia p50 (s)", ylabel="Pedidos exactos (%)", title="Calidad vs. latencia")
+    ejes[1].set(
+        xlabel="Latencia p50 de la evaluación (s)", ylabel="Pedidos exactos (%)", title="Calidad vs. latencia"
+    )
     for eje in ejes:
         eje.grid(alpha=0.3)
-    fig.tight_layout()
+    fig.legend(loc="lower center", ncol=4, frameon=False, fontsize=9)
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
     fig.savefig(destino, dpi=130)
 
 

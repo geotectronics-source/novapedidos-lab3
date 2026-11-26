@@ -11,7 +11,7 @@ decisión; el estado final está en el resumen.
 | D1 | **El LLM solo extrae; el código calcula** precios, descuentos, crédito, fechas y estado | LLM que devuelve el pedido completo; agente con herramientas | El código reproduce las 84 respuestas publicadas sin discrepancias |
 | D8 | **Resolución texto→SKU determinista** (filtrado por restricciones; "ante la duda, no adivinar") | `fuzz.ratio`; SKU elegido por el LLM; embeddings | `fuzz.ratio` inventaba SKU ("azuquita"→leche); 537 menciones adversariales |
 | D9 | **Una cadena LangChain con salida estructurada**, sin campos de precio en el esquema | Agente; varias llamadas | 1 llamada por pedido, ~US$0.0006 |
-| D10 | **Estrategia híbrida**: el LLM propone, el código valida (SKU, unidad, contexto) | Solo LLM; solo determinista | Solo LLM: 97.7 % vs 100 %; de 72/84 a 84/84 en desarrollo |
+| D10 | **Estrategia híbrida**: el LLM propone, el código valida (SKU, unidad, contexto) | Solo LLM; solo determinista | Solo LLM: 97.8 % vs 100 % (139 casos); de 72/84 a 84/84 en desarrollo |
 | D11 | Mensaje al cliente con **plantilla** | Redactarlo con el LLM | Coherente por construcción; sin costo ni latencia |
 | D12 | **Defensa en capas** contra inyección de instrucciones | Confiar solo en el prompt | 7 casos de inyección + pruebas con el modelo real |
 | D14 | API: **validación antes del modelo**; 404/422/503 | 200 con pedido vacío si falla el LLM | 267 solicitudes adversariales; 5 defectos corregidos |
@@ -106,7 +106,7 @@ D20); servicio en Docker p50 1.3 s / p95 1.9 s; ~US$0.61 por 1 000 pedidos.
 - **Límite conocido y cómo se resolvió:** el lenguaje informal tiene una cola larga que ninguna lista curada
   cubre. Por eso el LLM normaliza cada mención al vocabulario del catálogo antes de resolverla y el resolutor
   actúa como validador que nunca deja pasar un SKU inventado (D10). La alternativa (b) se midió en D18:
-  "solo LLM" obtuvo 97.7 % frente a 100 % de la híbrida.
+  "solo LLM" obtuvo 97.8 % (136/139) frente a 100 % de la híbrida (97.7 % en la comparación inicial de 132).
 - **Casos discutibles (se mantiene la lectura conservadora):** "kola familiar", "shampoo de botella",
   "aceite dorado 1 litro" (presentación que no existe → NO_EXISTE).
 

@@ -10,6 +10,10 @@ pendientes para revisión humana y un mensaje de confirmación para el cliente.
 el código determinista y probado resuelve los productos y calcula precios, descuentos, crédito, fechas y
 estado. Ningún mensaje puede alterar precios ni condiciones. Detalle en [DECISIONES.md](DECISIONES.md).
 
+![Pipeline de NovaPedidos](docs/diagrama_pipeline.png)
+
+(Diagrama generado con `uv run python docs/diagrama_pipeline.py`.)
+
 ## Levantar el producto (un comando)
 
 Requisitos: Docker Desktop (con Docker Compose) y una clave de [OpenRouter](https://openrouter.ai).
@@ -131,7 +135,7 @@ Casos propios: [evaluacion/casos_propios.jsonl](evaluacion/casos_propios.jsonl) 
 
 ```powershell
 uv sync
-uv run pytest                 # pruebas sin modelo (~420, ~15 s)
+uv run pytest                 # pruebas sin modelo (~430, ~15 s)
 uv run pytest -m llm          # pruebas con el modelo real (requiere OPENROUTER_API_KEY)
 docker compose up -d mlflow   # opcional: MLflow para las trazas (o TRAZAS_ACTIVAS=false en .env)
 uv run uvicorn novapedidos.api.app:app --port 8000
@@ -150,7 +154,8 @@ src/novapedidos/
   evaluacion/       scorers por código, evaluación y comparación en MLflow
 tests/              pruebas automatizadas que no dependen del modelo
 evaluacion/         casos propios y prueba por HTTP
-evidencia/          comparación de alternativas, capturas de MLflow, prueba en Docker
+evidencia/          comparación de alternativas, capturas de MLflow y de funcionamiento, prueba en Docker
+docs/               diagrama del pipeline (PNG y el script que lo genera)
 eda/                exploración de datos y verificación de las reglas
 ```
 
